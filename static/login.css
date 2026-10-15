@@ -1,0 +1,379 @@
+/* ==========================================================
+   StudyShelf - login.css  (matches the new main site design)
+   Styles for the admin login page (templates/login.html)
+   ========================================================== */
+
+/* ---------- Basic reset ---------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Colours (same palette as style.css) */
+:root {
+  --navy: #0f1f45;
+  --navy-2: #1b3a8a;
+  --blue: #3478f6;
+  --mint: #74e0ca;
+  --text: #172033;
+  --muted: #60708b;
+  --border: #dfe5f0;
+  --background: #f3f6fc;
+  --error: #b42318;
+  --success: #0f7b5f;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  /* shelf on the left, form on the right */
+  color: var(--text);
+}
+
+/* ---------- Left side: branding + bookshelf ---------- */
+.shelf-side {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  background: linear-gradient(150deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 40px;
+}
+
+/* Soft decorative circles */
+.shelf-side::before,
+.shelf-side::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+
+.shelf-side::before {
+  width: 320px;
+  height: 320px;
+  top: -110px;
+  right: -90px;
+  background: #74e0ca26;
+}
+
+.shelf-side::after {
+  width: 200px;
+  height: 200px;
+  top: 150px;
+  left: -80px;
+  background: #ffffff10;
+}
+
+.shelf-side>* {
+  position: relative;
+  z-index: 1;
+}
+
+.shelf-side h1 {
+  font-size: 2.3rem;
+  margin-bottom: 8px;
+}
+
+.shelf-side h1 span {
+  color: var(--mint);
+}
+
+.shelf-side p {
+  color: #c9d6f5;
+  max-width: 330px;
+  line-height: 1.5;
+  font-size: 0.97rem;
+}
+
+.shelf-side br {
+  display: none;
+}
+
+/* Row of books standing on the shelf */
+.books {
+  display: flex;
+  align-items: flex-end;
+  /* all books sit on the same line */
+  gap: 6px;
+  margin-top: 28px;
+  padding: 0 8px;
+}
+
+.book {
+  width: 26px;
+  border-radius: 4px 4px 0 0;
+  box-shadow: inset -4px 0 0 #0000001f;
+  /* darker edge = book spine */
+}
+
+/* Light stripe near the top of each book */
+.book::after {
+  content: "";
+  display: block;
+  margin-top: 16px;
+  height: 4px;
+  background: #ffffff59;
+}
+
+/* Wooden shelf board */
+.shelf-board {
+  height: 12px;
+  background: linear-gradient(#a56a32, #7b4a1f);
+  border-radius: 3px;
+  box-shadow: 0 6px 14px #00000040;
+}
+
+/* Book heights + colours (same colours as FY / SY / TY on the site) */
+.b1 {
+  height: 110px;
+  background: #3478f6;
+}
+
+.b2 {
+  height: 140px;
+  background: #12a594;
+}
+
+.b3 {
+  height: 95px;
+  background: #8b5cf6;
+}
+
+.b4 {
+  height: 160px;
+  background: #f5e9c8;
+}
+
+.b5 {
+  height: 125px;
+  background: #f59e0b;
+  width: 32px;
+}
+
+.b6 {
+  height: 105px;
+  background: #3478f6;
+}
+
+.b7 {
+  height: 150px;
+  background: #12a594;
+}
+
+/* ---------- Right side: login card ---------- */
+/* Soft circle behind the login card */
+.form-side::before {
+  content: "";
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  right: -110px;
+  bottom: -120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3478f633, #74e0ca40);
+}
+
+.login-box {
+  position: relative;
+  z-index: 1;
+}
+
+.form-side {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  background: linear-gradient(160deg, #e8f0ff 0%, #f5f8ff 50%, #e6f6f1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 390px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 30px 28px 24px;
+  box-shadow: 0 18px 50px #172a5a1f;
+}
+
+.login-box h2 {
+  font-size: 1.6rem;
+  margin-bottom: 4px;
+}
+
+.login-box .sub {
+  color: var(--muted);
+  margin-bottom: 22px;
+  font-size: 0.95rem;
+}
+
+label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 5px;
+}
+
+input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.97rem;
+  background: #fbfcff;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px #3478f633;
+  background: white;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+/* Password box + Show/Hide button sit together */
+.password-wrap {
+  position: relative;
+}
+
+.password-wrap input {
+  padding-right: 68px;
+}
+
+.toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--blue), #5b8cff);
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.login-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* Error message: only visible when there is text in it */
+.error {
+  background: #fff0f0;
+  color: var(--error);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.error:empty {
+  display: none;
+}
+
+.back-link {
+  display: block;
+  margin-top: 18px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--blue);
+}
+
+/* "Forgot password?" link under the password box */
+.forgot-link {
+  display: block;
+  margin-top: 8px;
+  text-align: right;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+/* Green message (reset link sent / password changed). Hidden when empty. */
+.success {
+  background: #e6f8f2;
+  color: var(--success);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.success:empty {
+  display: none;
+}
+
+/* A link that looks like the Log in button */
+.btn-link {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* ---------- Small screens: stack the two sides ---------- */
+@media (max-width: 760px) {
+  body {
+    flex-direction: column;
+  }
+
+  .shelf-side {
+    flex: none;
+    padding: 26px 22px;
+  }
+
+  .shelf-side h1 {
+    font-size: 1.8rem;
+    margin-bottom: 4px;
+  }
+
+  .books,
+  .shelf-board {
+    display: none;
+  }
+
+  /* hide books on phones to save space */
+
+  .form-side {
+    align-items: flex-start;
+    padding: 20px 16px 30px;
+  }
+}

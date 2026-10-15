@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Login | StudyShelf</title>
+
+    <!-- Connects the CSS file from Flask's static folder -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+</head>
+
+<body>
+
+    <!-- LEFT: branding and the bookshelf -->
+    <div class="shelf-side">
+        <h1>Study<span>Shelf</span></h1>
+        <p>Only the admin can add or delete notes. Everyone else can browse and download.</p>
+        <br>
+        <div class="books">
+            <div class="book b1"></div>
+            <div class="book b2"></div>
+            <div class="book b3"></div>
+            <div class="book b4"></div>
+            <div class="book b5"></div>
+            <div class="book b6"></div>
+            <div class="book b7"></div>
+        </div>
+        <div class="shelf-board"></div>
+    </div>
+
+    <!-- RIGHT: the login form -->
+    <div class="form-side">
+        <div class="login-box">
+            <h2>Admin login</h2>
+            <p class="sub">Sign in to manage notes.</p>
+
+            <!-- method="POST" sends the data to the /login route in Flask -->
+            <form id="loginForm" method="POST" action="/login">
+
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="admin" required>
+                </div>
+
+                <div class="field">
+                    <label for="password">Password</label>
+                    <div class="password-wrap">
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <button type="button" class="toggle-btn" id="toggleBtn">Show</button>
+                    </div>
+                </div>
+
+                <p class="error" id="errorMsg"></p>
+
+                <button type="submit" class="login-btn">Log in</button>
+            </form>
+
+        </div>
+    </div>
+
+    <script>
+        // Get the elements we need
+        var passwordInput = document.getElementById("password");
+        var toggleBtn = document.getElementById("toggleBtn");
+        var form = document.getElementById("loginForm");
+        var errorMsg = document.getElementById("errorMsg");
+
+        // Show / Hide the password when the button is clicked
+        toggleBtn.addEventListener("click", function () {
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                toggleBtn.textContent = "Hide";
+            } else {
+                passwordInput.type = "password";
+                toggleBtn.textContent = "Show";
+            }
+        });
+
+        // Simple check before the form is sent to the server
+        form.addEventListener("submit", function (event) {
+            if (passwordInput.value.length < 4) {
+                event.preventDefault();   // stop the form from being sent
+                errorMsg.textContent = "Password is too short.";
+            }
+        });
+
+        // If Flask redirects back with ?error=1, show a message
+        if (window.location.search.includes("error=1")) {
+            errorMsg.textContent = "Wrong username or password. Try again.";
+        }
+
+
+    </script>
+
+</body>
+
+</html>
