@@ -608,8 +608,14 @@ def add_note():
         filename = str(int(time.time())) + "_" + secure_filename(file.filename)
         try:
             save_upload(filename, file.read(), file.mimetype)
-        except Exception:
-            return {"error": "Could not upload the file. Please try again."}, 500
+        except Exception as e:
+            reason = str(e)
+            response = getattr(e, "response", None)
+            if response is not None:
+                reason = str(response.status_code) + " " + response.text[:200]
+            if SUPABASE_KEY:
+                reason = reason.replace(SUPABASE_KEY, "***")
+            return {"error": "Could not upload the file (" + reason + ")"}, 500
 
     conn = get_db()
     conn.execute(
