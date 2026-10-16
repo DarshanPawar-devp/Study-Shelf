@@ -34,6 +34,9 @@ const messageText = document.getElementById("message");    // error/success text
 // true only when the admin is logged in
 const isAdmin = document.body.dataset.admin === "yes";
 
+// The course of this page (BCA, BBA, ...). It is written into <body data-course="..."> by Flask.
+const course = document.body.dataset.course;
+
 
 /* ---------- 2. APP DATA ----------
    allNotes keeps every note received from Flask.
@@ -92,7 +95,8 @@ function getFileName(url) {
    fetch("/api/notes") sends a GET request to Flask. */
 async function loadNotes() {
     try {
-        const response = await fetch("/api/notes");
+        // ask Flask only for the notes of this course
+        const response = await fetch("/api/notes?course=" + encodeURIComponent(course));
         allNotes = await response.json();   // convert JSON text -> JS array
 
         fillSubjects();   // build the subject dropdown from the data
@@ -200,8 +204,10 @@ searchInput.addEventListener("input", showNotes);   // "input" fires on every ke
 
 
 /* ---------- 7B. YEAR PICKER ----------
-   The page first asks "Which year?". When a year card is clicked we:
-   1. set the year dropdown to that year (FY, SY, TY or all)
+   The page first asks "Which year?". The year cards are made by Flask,
+   so a 3-year course shows 3 cards and a 5-year course shows 5.
+   When a year card is clicked we:
+   1. set the year dropdown to that year (FY, SY, TY, 4Y, 5Y or all)
    2. hide the picker and show the notes */
 document.querySelectorAll(".year-card").forEach(card => {
     card.addEventListener("click", () => {
@@ -240,6 +246,11 @@ if (isAdmin && addButton && modal) {
     // Open the popup
     addButton.addEventListener("click", () => {
         messageText.textContent = "";   // clear old messages
+
+        // If a year is already chosen, start the form on that year
+        if (yearSelect.value !== "all") {
+            noteForm.elements["year"].value = yearSelect.value;
+        }
         if (typeof modal.showModal === "function") {
             modal.showModal();          // built-in <dialog> method
         } else {

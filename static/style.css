@@ -23,6 +23,15 @@
     --ty: #e8742f;
     --ty-soft: #fde6d8;
     /* peach */
+    --y4: #7c5cf5;
+    --y4-soft: #ece6fb;
+    /* lavender (4th year) */
+    --y5: #d6407a;
+    --y5-soft: #fde3ec;
+    /* rose (5th year) */
+    --y6: #12a594;
+    --y6-soft: #d9f3ee;
+    /* teal (6th year) */
 }
 
 * {
@@ -93,8 +102,24 @@ header {
     letter-spacing: 0.3px;
 }
 
+a.brand {
+    color: inherit;
+    text-decoration: none;
+}
+
 .brand span {
     color: var(--mint);
+}
+
+/* Small "Admin" label in the header */
+.admin-badge {
+    background: #74e0ca26;
+    color: var(--mint);
+    border: 1px solid #74e0ca66;
+    border-radius: 999px;
+    padding: 3px 11px;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 /* Right side of the header (login / Add Note buttons) */
@@ -257,12 +282,26 @@ h1 em {
 
 .year-options {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     gap: 14px;
 }
 
-/* Soft coloured cards: blue, green, peach, lavender */
-.year-card {
+/* Course and role cards (links) use the same look as the year cards */
+.choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.role-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    max-width: 640px;
+}
+
+/* Soft coloured cards. Colours follow the card position:
+   blue, green, peach, lavender, rose, teal, then repeat. */
+.year-card,
+.choice-card {
     --bg: var(--fy-soft);
     --c: var(--fy);
     display: flex;
@@ -275,29 +314,46 @@ h1 em {
     padding: 16px 16px 16px 20px;
     cursor: pointer;
     text-align: left;
+    text-decoration: none;
     font: inherit;
     color: var(--text);
     transition: transform 0.18s, box-shadow 0.18s;
 }
 
-.year-card:nth-child(1) {
+.year-card:nth-child(6n+1),
+.choice-card:nth-child(6n+1) {
     --bg: var(--fy-soft);
     --c: var(--fy);
 }
 
-.year-card:nth-child(2) {
+.year-card:nth-child(6n+2),
+.choice-card:nth-child(6n+2) {
     --bg: var(--sy-soft);
     --c: var(--sy);
 }
 
-.year-card:nth-child(3) {
+.year-card:nth-child(6n+3),
+.choice-card:nth-child(6n+3) {
     --bg: var(--ty-soft);
     --c: var(--ty);
 }
 
-.year-card:nth-child(4) {
-    --bg: #ece6fb;
-    --c: #7c5cf5;
+.year-card:nth-child(6n+4),
+.choice-card:nth-child(6n+4) {
+    --bg: var(--y4-soft);
+    --c: var(--y4);
+}
+
+.year-card:nth-child(6n+5),
+.choice-card:nth-child(6n+5) {
+    --bg: var(--y5-soft);
+    --c: var(--y5);
+}
+
+.year-card:nth-child(6n),
+.choice-card:nth-child(6n) {
+    --bg: var(--y6-soft);
+    --c: var(--y6);
 }
 
 .year-text {
@@ -314,6 +370,14 @@ h1 em {
     font-size: 14px;
     font-weight: 600;
     color: #3d4a63;
+}
+
+/* "3 years" under the course name */
+.choice-card .year-text small {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--c);
 }
 
 /* White rounded square with the icon */
@@ -334,7 +398,8 @@ h1 em {
     height: 21px;
 }
 
-.year-card:hover {
+.year-card:hover,
+.choice-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 22px #172a5a1f;
 }
@@ -355,6 +420,98 @@ h1 em {
 
 .back-btn:hover {
     background: #dbe7ff;
+}
+
+a.back-btn {
+    display: inline-block;
+    text-decoration: none;
+}
+
+/* Row of buttons above the course / year cards */
+.picker-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.picker-bar .back-btn {
+    margin-bottom: 0;
+}
+
+/* ---------- Manage courses page ---------- */
+.course-row {
+    --c: var(--fy);
+    --soft: var(--fy-soft);
+    display: grid;
+    grid-template-columns: 76px 1fr auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.course-row:last-child {
+    border-bottom: none;
+}
+
+.course-row:nth-child(6n+2) { --c: var(--sy);  --soft: var(--sy-soft); }
+.course-row:nth-child(6n+3) { --c: var(--ty);  --soft: var(--ty-soft); }
+.course-row:nth-child(6n+4) { --c: var(--y4);  --soft: var(--y4-soft); }
+.course-row:nth-child(6n+5) { --c: var(--y5);  --soft: var(--y5-soft); }
+.course-row:nth-child(6n)   { --c: var(--y6);  --soft: var(--y6-soft); }
+
+/* Coloured course code on the left, e.g. BCA */
+.course-code {
+    background: var(--soft);
+    color: var(--c);
+    border-radius: 12px;
+    padding: 10px 6px;
+    text-align: center;
+    font-weight: 800;
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.course-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.small-btn {
+    background: var(--light-blue);
+    color: var(--blue);
+    border: none;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.small-btn:hover {
+    background: #dbe7ff;
+}
+
+.small-btn.danger {
+    background: #fff0f0;
+    color: #cc3f3f;
+}
+
+.small-btn.danger:hover {
+    background: #ffe0e0;
+}
+
+/* Keyboard focus is clearly visible on the cards and buttons */
+.year-card:focus-visible,
+.choice-card:focus-visible,
+.back-btn:focus-visible {
+    outline: 3px solid var(--blue);
+    outline-offset: 2px;
 }
 
 /* ---------- Filters ---------- */
@@ -470,6 +627,21 @@ textarea {
 .note-row.year-TY {
     --c: var(--ty);
     --soft: var(--ty-soft);
+}
+
+.note-row.year-4Y {
+    --c: var(--y4);
+    --soft: var(--y4-soft);
+}
+
+.note-row.year-5Y {
+    --c: var(--y5);
+    --soft: var(--y5-soft);
+}
+
+.note-row.year-6Y {
+    --c: var(--y6);
+    --soft: var(--y6-soft);
 }
 
 /* Icon square on the left */
@@ -718,6 +890,26 @@ label {
 @media (max-width: 700px) {
     .year-options {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .choice-grid,
+    .role-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* course rows: code + name on one line, buttons below */
+    .course-row {
+        grid-template-columns: 64px 1fr;
+    }
+
+    .course-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+
+    /* let long course names wrap instead of being cut off */
+    .course-row .note-main h3 {
+        white-space: normal;
     }
 
     .filters,

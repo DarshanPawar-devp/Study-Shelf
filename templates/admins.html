@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Manage admins | StudyShelf</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    {% include "_header.html" %}
+
+    <main>
+
+        <section class="hero">
+            <div>
+                <p class="eyebrow"> MANAGE ADMINS</p>
+                <h1>Who can<br><em>manage the site.</em></h1>
+                <p>Give each teacher their own login. You can change a password or remove an admin at any time.</p>
+            </div>
+        </section>
+
+        <section class="year-picker">
+            <div class="picker-bar">
+                <a href="/courses" class="back-btn">&larr; Back to courses</a>
+
+                {% if owner %}
+                <button type="button" id="addAdminBtn" class="pill-btn">
+                    <span class="icon-circle"><svg class="ico" viewBox="0 0 24 24">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg></span>
+                    Add admin
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="notes course-list">
+                {% for a in admins %}
+                <article class="course-row">
+                    <div class="course-code">{{ a.username[:2]|upper }}</div>
+
+                    <div class="note-main">
+                        <h3>{{ a.username }}{% if a.username == me %} (you){% endif %}</h3>
+                        <p>{% if a.is_owner %}Owner &middot; {% endif %}Added {{ a.created_at or "earlier" }}</p>
+                    </div>
+
+                    <div class="course-actions">
+                        {% if owner or a.username == me %}
+                        <button type="button" class="small-btn rename-admin" data-user="{{ a.username }}">Rename</button>
+                        <button type="button" class="small-btn change-pass" data-user="{{ a.username }}">Change password</button>
+                        {% endif %}
+                        {% if owner and a.username != me %}
+                        <button type="button" class="small-btn danger delete-admin" data-user="{{ a.username }}">Delete</button>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <!-- Popup used for both adding an admin and changing a password -->
+    <dialog id="adminModal">
+        <form id="adminForm">
+
+            <div class="dialog-title">
+                <div>
+                    <h2 id="adminModalTitle">Add admin</h2>
+                    <p id="adminModalHint">Username: letters, numbers, dots, dashes. Password: at least 6 characters.</p>
+                </div>
+                <button type="button" class="x" id="adminClose">×</button>
+            </div>
+
+            <label id="usernameLabel">
+                Username
+                <input name="username" id="adminUsername" maxlength="30" autocomplete="off" placeholder="Example: teacher1">
+            </label>
+
+            <label id="passwordLabel">
+                Password
+                <input type="password" name="password" id="adminPassword" required minlength="6" maxlength="100"
+                    autocomplete="new-password" placeholder="At least 6 characters">
+            </label>
+
+            <div class="footer">
+                <span id="adminMessage"></span>
+                <button type="submit" class="primary">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="{{ url_for('static', filename='admins.js') }}"></script>
+
+</body>
+
+</html>

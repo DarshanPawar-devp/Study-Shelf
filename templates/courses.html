@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Choose a course | StudyShelf</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    {% include "_header.html" %}
+
+    <main>
+
+        <section class="hero">
+            <div>
+                <p class="eyebrow"> CHOOSE A COURSE</p>
+                <h1>Which course<br><em>are you in?</em></h1>
+                {% if is_admin %}
+                <p>Pick a course to add or manage its notes.</p>
+                {% else %}
+                <p>Each course has its own years and study material.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- STEP 2: one card for every course listed in COURSES (app.py) -->
+        <section class="year-picker">
+            <div class="picker-bar">
+                <a href="/" class="back-btn">&larr; Back</a>
+                {% if is_admin %}
+                <a href="/manage" class="back-btn">Manage courses</a>
+                <a href="/admins" class="back-btn">Manage admins</a>
+                {% endif %}
+            </div>
+
+            {% if not courses %}
+            <div class="notes">
+                {% if is_admin %}
+                <div class="empty">No courses yet. Click "Manage courses" to add the first one.</div>
+                {% else %}
+                <div class="empty">No courses have been added yet. Please check back later.</div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="choice-grid">
+                {% for code, info in courses.items() %}
+                <a class="choice-card" href="/course/{{ code }}">
+                    <span class="year-text">
+                        <strong>{{ code }}</strong>
+                        <span>{{ info.name }}</span>
+                        <small>{{ info.years }} year{{ "" if info.years == 1 else "s" }}</small>
+                    </span>
+                    <span class="year-icon"><svg class="ico" viewBox="0 0 24 24">
+                            <path d="M22 10L12 5 2 10l10 5 10-5z" />
+                            <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                        </svg></span>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+</body>
+
+</html>
