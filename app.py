@@ -4,14 +4,37 @@ import sys
 import time
 from datetime import datetime
 import sqlite3
+from urllib.parse import quote
 from flask import Flask, render_template, request, redirect, session, jsonify, url_for
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
-app = Flask(__name__)
-   # needed to remember who is logged in
+# The css/js files live in public/static, because Vercel only serves files from
+# the "public" folder. The web address is still /static/...
+app = Flask(__name__, static_folder="public/static", static_url_path="/static")
+
+# True when the site is running online on Vercel (Vercel sets this variable)
+ON_VERCEL = bool(os.environ.get("VERCEL"))
+
 # ---------- Admin accounts ----------
+# needed to remember who is logged in
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-key")
+if ON_VERCEL and app.secret_key == "dev-only-key":
+    raise RuntimeError("Set the SECRET_KEY environment variable in Vercel first.")
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = ON_VERCEL      # online the login cookie only travels over https
+
+# Vercel cannot receive requests bigger than about 4.5 MB, so uploads are limited to 4 MB online
+MAX_UPLOAD_MB = 4 if ON_VERCEL else 0                 # 0 = no limit (your own computer)
+if ON_VERCEL:
+    app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
+
+
+@app.errorhandler(413)
+def file_too_big(error):
+    return {"error": "The file is too big. The maximum size is " + str(MAX_UPLOAD_MB) + " MB."}, 413
 
 # Admin accounts live in the database (the "admins" table), so you can give each
 # teacher their own login from the website: log in, then choose "Manage admins".
@@ -21,6 +44,19 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-only-key")
 # Changing them later has no effect. Use the website instead.
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "change-me")
+
+# ---------- Online services (Supabase) ----------
+# On your own computer none of these are needed: the app uses the notes.db file and
+# the uploads folder. Online, set them and the app switches to Supabase automatically.
+#   DATABASE_URL         Supabase Postgres connection string (the database)
+#   SUPABASE_URL         your project address, e.g. https://abcd1234.supabase.co
+#   SUPABASE_SERVICE_KEY the secret "service_role" key (keep it private!)
+#   SUPABASE_BUCKET      name of a PUBLIC storage bucket (default: notes)
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "notes")
+USE_SUPABASE = bool(SUPABASE_URL and SUPABASE_KEY)
 
 
 # ---------- Courses ----------
@@ -58,7 +94,7 @@ def years_for(count):
 # downloads the new file as soon as it changes.
 def dated_url_for(endpoint, **values):
     if endpoint == "static" and values.get("filename"):
-        file_path = os.path.join(app.root_path, "static", values["filename"])
+        file_path = os.path.join(app.static_folder, values["filename"])
         if os.path.isfile(file_path):
             values["v"] = int(os.stat(file_path).st_mtime)
     return url_for(endpoint, **values)
@@ -69,14 +105,164 @@ def use_dated_url_for():
     return dict(url_for=dated_url_for)
 
 
-UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# ---------- Uploaded files ----------
+# On your computer the files go to public/static/uploads.
+# Online (Supabase) they go to the storage bucket, because Vercel cannot keep files.
+UPLOAD_FOLDER = os.path.join(app.static_folder, "uploads")
+if not USE_SUPABASE:
+    try:
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    except OSError:
+        pass
 
 
-# Connect to the database file.
-# The tables are created here if they are missing, so deleting notes.db
+# The address where a stored file can be opened
+def file_url(filename):
+    if USE_SUPABASE:
+        return SUPABASE_URL + "/storage/v1/object/public/" + SUPABASE_BUCKET + "/" + quote(filename)
+    return "/static/uploads/" + filename
+
+
+# Keeps a file. "data" is the file content (bytes).
+def save_upload(filename, data, content_type="application/octet-stream"):
+    if USE_SUPABASE:
+        import requests
+        response = requests.post(
+            SUPABASE_URL + "/storage/v1/object/" + SUPABASE_BUCKET + "/" + quote(filename),
+            headers={"Authorization": "Bearer " + SUPABASE_KEY, "apikey": SUPABASE_KEY,
+                     "Content-Type": content_type or "application/octet-stream"},
+            data=data, timeout=60)
+        response.raise_for_status()
+    else:
+        with open(os.path.join(UPLOAD_FOLDER, os.path.basename(filename)), "wb") as f:
+            f.write(data)
+
+
+# Removes a stored file. A file that is already gone is not a problem.
+def delete_upload(filename):
+    if not filename:
+        return
+    try:
+        if USE_SUPABASE:
+            import requests
+            requests.delete(
+                SUPABASE_URL + "/storage/v1/object/" + SUPABASE_BUCKET + "/" + quote(filename),
+                headers={"Authorization": "Bearer " + SUPABASE_KEY, "apikey": SUPABASE_KEY},
+                timeout=30)
+        else:
+            os.remove(os.path.join(UPLOAD_FOLDER, os.path.basename(filename)))
+    except Exception:
+        pass   # the file was already gone
+
+
+# ---------- Database ----------
+# Your computer: the notes.db file (SQLite).
+# Online: Supabase Postgres, used when DATABASE_URL is set.
+# Both speak SQL. The only difference is that SQLite writes "?" for a value and
+# Postgres writes "%s", so PgConnection changes the "?" for us.
+class PgConnection:
+    def __init__(self, connection):
+        self.connection = connection
+
+    def execute(self, sql, params=()):
+        return self.connection.execute(sql.replace("?", "%s"), params)
+
+    def commit(self):
+        self.connection.commit()
+
+    def close(self):
+        self.connection.close()
+
+
+# Makes the first admin when there is none yet, and makes sure someone is the owner
+def seed_first_admin(conn):
+    if not conn.execute("SELECT 1 FROM admins LIMIT 1").fetchone():
+        if ON_VERCEL and ADMIN_PASS == "change-me":
+            raise RuntimeError("Set ADMIN_USER and ADMIN_PASS in Vercel before the first start.")
+        conn.execute(
+            "INSERT INTO admins (username, password_hash, created_at, is_owner) VALUES (?, ?, ?, 1) "
+            "ON CONFLICT (username) DO NOTHING",
+            (ADMIN_USER.strip().lower(), generate_password_hash(ADMIN_PASS),
+             datetime.now().strftime("%Y-%m-%d %H:%M"))
+        )
+    # Older databases have no owner yet: the oldest admin becomes the owner
+    if not conn.execute("SELECT 1 FROM admins WHERE is_owner = 1").fetchone():
+        conn.execute("UPDATE admins SET is_owner = 1 WHERE username = "
+                     "(SELECT username FROM admins ORDER BY created_at, username LIMIT 1)")
+
+
+# Postgres: create the tables once each time the server starts (not on every request,
+# because every step is a trip over the internet)
+postgres_ready = False
+
+
+def setup_postgres(conn):
+    had_courses_table = conn.execute("SELECT to_regclass('public.courses')::text AS t").fetchone()["t"]
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS notes (
+            id SERIAL PRIMARY KEY,
+            title TEXT,
+            year TEXT,
+            subject TEXT,
+            unit TEXT,
+            description TEXT,
+            filename TEXT,
+            created_at TEXT,
+            course TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS courses (
+            code TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            years INTEGER NOT NULL,
+            position INTEGER NOT NULL
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS admins (
+            username TEXT PRIMARY KEY,
+            password_hash TEXT NOT NULL,
+            created_at TEXT,
+            is_owner INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+
+    # Supabase also opens every table to the internet through its own API.
+    # Turning on row level security (with no rules) closes that door. This app
+    # connects with the owner login, which is not affected.
+    for table in ("notes", "courses", "admins"):
+        conn.execute("ALTER TABLE " + table + " ENABLE ROW LEVEL SECURITY")
+
+    if not had_courses_table:
+        for position, (code, name, years) in enumerate(DEFAULT_COURSES):
+            conn.execute(
+                "INSERT INTO courses (code, name, years, position) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT (code) DO NOTHING",
+                (code, name, years, position)
+            )
+
+    seed_first_admin(conn)
+    conn.commit()
+
+
+# Connect to the database.
+# The SQLite tables are created here if they are missing, so deleting notes.db
 # can never break the app: a fresh empty database is made automatically.
 def get_db():
+    global postgres_ready
+
+    if DATABASE_URL:
+        import psycopg
+        from psycopg.rows import dict_row
+        # prepare_threshold=None is needed for the Supabase connection pooler
+        conn = PgConnection(psycopg.connect(DATABASE_URL, row_factory=dict_row, prepare_threshold=None))
+        if not postgres_ready:
+            setup_postgres(conn)
+            postgres_ready = True
+        return conn
+
     conn = sqlite3.connect(os.path.join(app.root_path, "notes.db"))
     conn.row_factory = sqlite3.Row
 
@@ -131,15 +317,7 @@ def get_db():
 
     # When the table is empty, the first admin is made from ADMIN_USER / ADMIN_PASS
     # and becomes the owner.
-    if not conn.execute("SELECT 1 FROM admins LIMIT 1").fetchone():
-        conn.execute(
-            "INSERT INTO admins (username, password_hash, created_at, is_owner) VALUES (?, ?, ?, 1)",
-            (ADMIN_USER.strip().lower(), generate_password_hash(ADMIN_PASS),
-             datetime.now().strftime("%Y-%m-%d %H:%M"))
-        )
-    # Older databases have no owner yet: the oldest admin becomes the owner
-    if not conn.execute("SELECT 1 FROM admins WHERE is_owner = 1").fetchone():
-        conn.execute("UPDATE admins SET is_owner = 1 WHERE rowid = (SELECT MIN(rowid) FROM admins)")
+    seed_first_admin(conn)
 
     # Older databases have no date column yet, so add it once
     columns = [row[1] for row in conn.execute("PRAGMA table_info(notes)").fetchall()]
@@ -150,7 +328,7 @@ def get_db():
     # Notes saved before courses existed are placed under the first course.
     if "course" not in columns:
         conn.execute("ALTER TABLE notes ADD COLUMN course TEXT")
-    first = conn.execute("SELECT code FROM courses ORDER BY position, rowid LIMIT 1").fetchone()
+    first = conn.execute("SELECT code FROM courses ORDER BY position, code LIMIT 1").fetchone()
     if first:
         conn.execute("UPDATE notes SET course = ? WHERE course IS NULL OR course = ''", (first["code"],))
 
@@ -161,7 +339,7 @@ def get_db():
 # Reads all courses from the database, in order: {"BCA": {"name": ..., "years": 3}, ...}
 def get_courses():
     conn = get_db()
-    rows = conn.execute("SELECT code, name, years FROM courses ORDER BY position, rowid").fetchall()
+    rows = conn.execute("SELECT code, name, years FROM courses ORDER BY position, code").fetchall()
     conn.close()
     return {row["code"]: {"name": row["name"], "years": row["years"]} for row in rows}
 
@@ -222,6 +400,7 @@ def course_page(code):
         course=courses[code],
         years=years_for(courses[code]["years"]),
         show_add=True,          # the header shows the "Add Note" button (admin only)
+        max_upload_mb=MAX_UPLOAD_MB,
     )
 
 
@@ -368,11 +547,7 @@ def delete_course(code):
 
     # remove the uploaded files of this course's notes
     for row in conn.execute("SELECT filename FROM notes WHERE course = ?", (code,)).fetchall():
-        if row["filename"]:
-            try:
-                os.remove(os.path.join(UPLOAD_FOLDER, os.path.basename(row["filename"])))
-            except OSError:
-                pass   # the file was already gone
+        delete_upload(row["filename"])
 
     conn.execute("DELETE FROM notes WHERE course = ?", (code,))
     conn.execute("DELETE FROM courses WHERE code = ?", (code,))
@@ -398,7 +573,7 @@ def get_notes():
     for row in rows:
         note = dict(row)
         if row["filename"]:
-            note["file_url"] = "/static/uploads/" + row["filename"]
+            note["file_url"] = file_url(row["filename"])
         else:
             note["file_url"] = ""
         notes.append(note)
@@ -431,7 +606,10 @@ def add_note():
     file = request.files.get("file")
     if file and file.filename != "":
         filename = str(int(time.time())) + "_" + secure_filename(file.filename)
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
+        try:
+            save_upload(filename, file.read(), file.mimetype)
+        except Exception:
+            return {"error": "Could not upload the file. Please try again."}, 500
 
     conn = get_db()
     conn.execute(
@@ -450,9 +628,12 @@ def delete_note(note_id):
         return {"error": "Admin only"}, 403
 
     conn = get_db()
+    row = conn.execute("SELECT filename FROM notes WHERE id = ?", (note_id,)).fetchone()
     conn.execute("DELETE FROM notes WHERE id = ?", (note_id,))
     conn.commit()
     conn.close()
+    if row:
+        delete_upload(row["filename"])
     return jsonify(ok=True)
 
 
@@ -597,10 +778,10 @@ def reset_admin(username, password):
         (username, generate_password_hash(password), datetime.now().strftime("%Y-%m-%d %H:%M"))
     )
     # the account you reset becomes the one and only owner
-    conn.execute("UPDATE admins SET is_owner = (username = ?)", (username,))
+    conn.execute("UPDATE admins SET is_owner = CASE WHEN username = ? THEN 1 ELSE 0 END", (username,))
     conn.commit()
     conn.close()
-    print("Done. Admin '" + username + "' is ready in " + os.path.join(app.root_path, "notes.db"))
+    print("Done. Admin '" + username + "' is ready.")
     list_admins()
 
 
@@ -608,7 +789,7 @@ def list_admins():
     conn = get_db()
     rows = conn.execute("SELECT username, is_owner FROM admins ORDER BY username").fetchall()
     conn.close()
-    print("Database:", os.path.join(app.root_path, "notes.db"))
+    print("Database:", "the online database (DATABASE_URL)" if DATABASE_URL else os.path.join(app.root_path, "notes.db"))
     print("Admins  :", ", ".join(r["username"] + (" (owner)" if r["is_owner"] else "") for r in rows))
 
 

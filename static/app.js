@@ -267,6 +267,14 @@ if (isAdmin && addButton && modal) {
     noteForm.addEventListener("submit", async (event) => {
         event.preventDefault();   // stop the browser's default page reload
 
+        // Online, the server cannot accept big files. data-max-mb is 0 on your own computer (no limit).
+        const maxMb = Number(noteForm.dataset.maxMb) || 0;
+        const chosen = noteForm.elements["file"] && noteForm.elements["file"].files[0];
+        if (maxMb && chosen && chosen.size > maxMb * 1024 * 1024) {
+            messageText.textContent = "This file is too big. The maximum size is " + maxMb + " MB.";
+            return;
+        }
+
         messageText.textContent = "Saving...";
 
         try {
