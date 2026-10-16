@@ -105,28 +105,6 @@ def use_dated_url_for():
     return dict(url_for=dated_url_for)
 
 
-# ---------- TEMPORARY DEBUG (remove after fixing) ----------
-# Shows the real error on the page instead of "Internal Server Error".
-@app.errorhandler(Exception)
-def show_error(e):
-    from werkzeug.exceptions import HTTPException
-    if isinstance(e, HTTPException):
-        return e
-    import traceback
-    text = traceback.format_exc()
-    for secret in (DATABASE_URL, os.environ.get("SUPABASE_SERVICE_KEY", ""), os.environ.get("SECRET_KEY", ""), ADMIN_PASS):
-        if secret:
-            text = text.replace(secret, "***")
-    try:
-        from urllib.parse import urlparse, unquote
-        pw = urlparse(DATABASE_URL).password
-        if pw:
-            text = text.replace(pw, "***").replace(unquote(pw), "***")
-    except Exception:
-        pass
-    return "<pre style='white-space:pre-wrap'>" + text.replace("<", "&lt;") + "</pre>", 500
-
-
 # ---------- Uploaded files ----------
 # On your computer the files go to static/uploads.
 # Online (Supabase) they go to the storage bucket, because Vercel cannot keep files.
