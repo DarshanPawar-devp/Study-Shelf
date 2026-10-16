@@ -241,6 +241,36 @@ if (changeYearBtn) {
 // Helps debugging: press F12 > Console to see this line
 console.log("StudyShelf loaded. Admin:", isAdmin, "| Add Note button found:", !!addButton, "| popup found:", !!modal);
 
+/* ---------- BIG FILE UPLOAD (straight to Supabase) ----------
+   XMLHttpRequest is used because it can report progress for big files.
+   Returns "" when it worked, or a short text that explains the problem. */
+function uploadToSupabase(url, file) {
+    return new Promise((resolve) => {
+        const body = new FormData();
+        body.append("cacheControl", "3600");
+        body.append("", file);
+
+        const request = new XMLHttpRequest();
+        request.open("PUT", url);
+        request.setRequestHeader("x-upsert", "false");
+        request.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                messageText.textContent = "Uploading file... " + Math.round(event.loaded / event.total * 100) + "%";
+            }
+        };
+        request.onload = () => {
+            if (request.status >= 200 && request.status < 300) {
+                resolve("");
+            } else {
+                resolve(request.status + " " + String(request.responseText).slice(0, 200));
+            }
+        };
+        request.onerror = () => resolve("network error");
+        request.send(body);
+    });
+}
+
+
 if (isAdmin && addButton && modal) {
 
     // Open the popup
@@ -267,8 +297,11 @@ if (isAdmin && addButton && modal) {
     noteForm.addEventListener("submit", async (event) => {
         event.preventDefault();   // stop the browser's default page reload
 
-        // Online, the server cannot accept big files. data-max-mb is 0 on your own computer (no limit).
+        // maxMb = biggest file allowed (0 on your own computer = no limit).
+        // directMb = files bigger than this are sent straight to Supabase, because the
+        // server (Vercel) cannot receive big requests. 0 = not used.
         const maxMb = Number(noteForm.dataset.maxMb) || 0;
+        const directMb = Number(noteForm.dataset.directMb) || 0;
         const chosen = noteForm.elements["file"] && noteForm.elements["file"].files[0];
         if (maxMb && chosen && chosen.size > maxMb * 1024 * 1024) {
             messageText.textContent = "This file is too big. The maximum size is " + maxMb + " MB.";
@@ -278,9 +311,34 @@ if (isAdmin && addButton && modal) {
         messageText.textContent = "Saving...";
 
         try {
+            const formData = new FormData(noteForm);
+
+            // Big file: upload it straight to Supabase first, then save the note without the file
+            if (chosen && directMb && chosen.size > directMb * 1024 * 1024) {
+                const ticket = await fetch("/api/upload-url", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ filename: chosen.name })
+                });
+                const ticketData = await ticket.json().catch(() => ({}));
+                if (!ticket.ok) {
+                    messageText.textContent = ticketData.error || "Could not start the upload.";
+                    return;
+                }
+
+                const problem = await uploadToSupabase(ticketData.upload_url, chosen);
+                if (problem) {
+                    messageText.textContent = "Could not upload the file (" + problem + ")";
+                    return;
+                }
+                formData.delete("file");
+                formData.append("uploaded_filename", ticketData.name);
+                messageText.textContent = "Saving...";
+            }
+
             const response = await fetch("/api/notes", {
                 method: "POST",
-                body: new FormData(noteForm)
+                body: formData
             });
 
             if (response.ok) {
