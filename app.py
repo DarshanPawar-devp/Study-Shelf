@@ -26,15 +26,18 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = ON_VERCEL      # online the login cookie only travels over https
 
-# Vercel cannot receive requests bigger than about 4.5 MB, so uploads are limited to 4 MB online
-MAX_UPLOAD_MB = 4 if ON_VERCEL else 0                 # 0 = no limit (your own computer)
+# Vercel cannot receive requests bigger than about 4.5 MB. So online, files bigger than
+# DIRECT_ABOVE_MB are sent by the browser straight to Supabase (see /api/upload-url).
+# MAX_UPLOAD_MB is the biggest file allowed online (the free Supabase plan allows 50 MB).
+MAX_UPLOAD_MB = 50 if ON_VERCEL else 0                # 0 = no limit (your own computer)
+DIRECT_ABOVE_MB = 4
 if ON_VERCEL:
     app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 
 @app.errorhandler(413)
 def file_too_big(error):
-    return {"error": "The file is too big. The maximum size is " + str(MAX_UPLOAD_MB) + " MB."}, 413
+    return {"error": "The file is too big for this route. Please try again."}, 413
 
 # Admin accounts live in the database (the "admins" table), so you can give each
 # teacher their own login from the website: log in, then choose "Manage admins".
@@ -401,6 +404,7 @@ def course_page(code):
         years=years_for(courses[code]["years"]),
         show_add=True,          # the header shows the "Add Note" button (admin only)
         max_upload_mb=MAX_UPLOAD_MB,
+        direct_upload_mb=DIRECT_ABOVE_MB if USE_SUPABASE else 0,
     )
 
 
@@ -580,6 +584,47 @@ def get_notes():
     return jsonify(notes)
 
 
+# Big files: the browser sends them straight to Supabase (Vercel cannot take them).
+# This route gives the browser a one-time upload address for one file name.
+@app.route("/api/upload-url", methods=["POST"])
+def upload_url():
+    if not session.get("is_admin"):
+        return {"error": "Admin only"}, 403
+    if not USE_SUPABASE:
+        return {"error": "Direct upload is only used online."}, 400
+
+    data = request.get_json(silent=True) or {}
+    clean = secure_filename(str(data.get("filename", ""))) or "file"
+    name = str(int(time.time())) + "_" + clean
+
+    import requests
+    try:
+        response = requests.post(
+            SUPABASE_URL + "/storage/v1/object/upload/sign/" + SUPABASE_BUCKET + "/" + quote(name),
+            headers={"Authorization": "Bearer " + SUPABASE_KEY, "apikey": SUPABASE_KEY,
+                     "Content-Type": "application/json"},
+            json={}, timeout=30)
+        response.raise_for_status()
+        path = response.json()["url"]
+    except Exception as e:
+        reason = str(e)
+        r = getattr(e, "response", None)
+        if r is not None:
+            reason = str(r.status_code) + " " + r.text[:200]
+        return {"error": "Could not start the upload (" + reason.replace(SUPABASE_KEY, "***") + ")"}, 500
+
+    if path.startswith("/storage/v1"):
+        full = SUPABASE_URL + path
+    else:
+        full = SUPABASE_URL + "/storage/v1" + path
+    return jsonify(name=name, upload_url=full)
+
+
+# A file name that the browser says it uploaded itself must look like one of ours
+def uploaded_name_ok(name):
+    return bool(re.fullmatch(r"\d{6,}_[A-Za-z0-9._-]{1,150}", name))
+
+
 # Save a new note from the form (admin only)
 @app.route("/api/notes", methods=["POST"])
 def add_note():
@@ -603,8 +648,21 @@ def add_note():
 
     # Save the file if the admin chose one
     filename = ""
+    already = request.form.get("uploaded_filename", "").strip()
     file = request.files.get("file")
-    if file and file.filename != "":
+    if already:
+        # The browser already sent the file straight to Supabase: check it is really there
+        if not USE_SUPABASE or not uploaded_name_ok(already):
+            return {"error": "Invalid file name."}, 400
+        try:
+            import requests
+            found = requests.head(file_url(already), timeout=20)
+            if found.status_code != 200:
+                return {"error": "The file did not finish uploading. Please try again."}, 400
+        except Exception:
+            return {"error": "Could not check the uploaded file. Please try again."}, 500
+        filename = already
+    elif file and file.filename != "":
         filename = str(int(time.time())) + "_" + secure_filename(file.filename)
         try:
             save_upload(filename, file.read(), file.mimetype)

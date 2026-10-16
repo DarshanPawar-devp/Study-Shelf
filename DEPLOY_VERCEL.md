@@ -29,12 +29,9 @@ without the settings below, the app uses `notes.db` and the uploads folder.
 
 Upload these project files to your repository (Add file, then Upload files):
 `app.py`, `requirements.txt`, `migrate_to_supabase.py`, `DEPLOY_VERCEL.md`,
-`.gitignore`, and the folders `templates` and `public`.
+`.gitignore`, and the folders `templates` and `static`.
 
-Then **delete the old `static` folder** from the repository. The css and js files now
-live in `public/static`.
-
-Do not upload `notes.db` or `public/static/uploads`.
+Do not upload `notes.db` or `static/uploads`.
 
 ## Part 3: Vercel
 
@@ -83,10 +80,9 @@ If you get locked out online, run the same four `$env:` lines and then:
 
 ## Things to know
 
-- **Upload limit: 4 MB per file online.** Vercel does not accept bigger requests.
+- **Upload limit: 50 MB per file online** (the free Supabase limit). Files over 4 MB go
+  straight from the browser to Supabase, because Vercel only accepts small requests.
   On your own computer there is no limit.
 - The first visit after a quiet period can take a few seconds to load.
 - Uploaded files are public to anyone who has the link to the file. Students need that
   to download them, but do not upload private documents.
-- Local files moved: the uploads folder is now `public/static/uploads`. If you run the app
-  on your computer, copy your old `static/uploads` files there.
