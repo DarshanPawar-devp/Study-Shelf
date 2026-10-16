@@ -9,9 +9,9 @@ from flask import Flask, render_template, request, redirect, session, jsonify, u
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# The css/js files live in public/static, because Vercel only serves files from
-# the "public" folder. The web address is still /static/...
-app = Flask(__name__, static_folder="public/static", static_url_path="/static")
+# The css/js files live in the "static" folder next to this file, so the app
+# itself serves them (the web address is /static/...).
+app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 # True when the site is running online on Vercel (Vercel sets this variable)
 ON_VERCEL = bool(os.environ.get("VERCEL"))
@@ -106,7 +106,7 @@ def use_dated_url_for():
 
 
 # ---------- Uploaded files ----------
-# On your computer the files go to public/static/uploads.
+# On your computer the files go to static/uploads.
 # Online (Supabase) they go to the storage bucket, because Vercel cannot keep files.
 UPLOAD_FOLDER = os.path.join(app.static_folder, "uploads")
 if not USE_SUPABASE:
