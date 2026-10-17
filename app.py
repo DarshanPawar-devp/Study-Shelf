@@ -2,7 +2,7 @@ import os
 import re
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import sqlite3
 from urllib.parse import quote
 from flask import Flask, render_template, request, redirect, session, jsonify, url_for
@@ -232,10 +232,18 @@ def setup_postgres(conn):
         )
     """)
 
+    # Wrong password attempts are remembered here (see "Login protection" below)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS login_attempts (
+            ip TEXT NOT NULL,
+            attempted_at TEXT NOT NULL
+        )
+    """)
+
     # Supabase also opens every table to the internet through its own API.
     # Turning on row level security (with no rules) closes that door. This app
     # connects with the owner login, which is not affected.
-    for table in ("notes", "courses", "admins"):
+    for table in ("notes", "courses", "admins", "login_attempts"):
         conn.execute("ALTER TABLE " + table + " ENABLE ROW LEVEL SECURITY")
 
     if not had_courses_table:
@@ -314,6 +322,13 @@ def get_db():
             is_owner INTEGER NOT NULL DEFAULT 0
         )
     """)
+    # Wrong password attempts are remembered here (see "Login protection" below)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS login_attempts (
+            ip TEXT NOT NULL,
+            attempted_at TEXT NOT NULL
+        )
+    """)
     admin_columns = [row[1] for row in conn.execute("PRAGMA table_info(admins)").fetchall()]
     if "is_owner" not in admin_columns:
         conn.execute("ALTER TABLE admins ADD COLUMN is_owner INTEGER NOT NULL DEFAULT 0")
@@ -345,6 +360,36 @@ def get_courses():
     rows = conn.execute("SELECT code, name, years FROM courses ORDER BY position, code").fetchall()
     conn.close()
     return {row["code"]: {"name": row["name"], "years": row["years"]} for row in rows}
+
+
+# ---------- Login protection ----------
+# Without a limit, someone could try thousands of passwords. So after
+# MAX_LOGIN_FAILS wrong tries from the same visitor inside LOGIN_WINDOW_MINUTES,
+# the login is blocked until the old tries are older than the window.
+# The tries are kept in the database (table login_attempts), because the online
+# server (Vercel) forgets everything kept in memory between requests.
+MAX_LOGIN_FAILS = 5
+LOGIN_WINDOW_MINUTES = 10
+
+
+# The current time (or some minutes ago) as text, e.g. "2026-10-17 09:30:00".
+# Text like this can be compared with < and > in SQL, because the biggest part comes first.
+def time_text(minutes_ago=0):
+    moment = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
+    return moment.strftime("%Y-%m-%d %H:%M:%S")
+
+
+# Who is visiting? Online, Vercel puts the visitor's address in X-Forwarded-For.
+def visitor_ip():
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    return forwarded.split(",")[0].strip() or request.remote_addr or "unknown"
+
+
+# True when this visitor already failed too many times recently
+def too_many_failures(conn, ip):
+    conn.execute("DELETE FROM login_attempts WHERE attempted_at < ?", (time_text(LOGIN_WINDOW_MINUTES),))
+    row = conn.execute("SELECT COUNT(*) AS n FROM login_attempts WHERE ip = ?", (ip,)).fetchone()
+    return row["n"] >= MAX_LOGIN_FAILS
 
 
 # Checks the admin session. Used by the course management routes.
@@ -385,7 +430,8 @@ def student():
 # Step 2: choose a course (students and the logged-in admin both land here)
 @app.route("/courses")
 def courses():
-    return render_template("courses.html", courses=get_courses(), is_admin=session.get("is_admin", False))
+    return render_template("courses.html", courses=get_courses(), year_names=YEAR_NAMES,
+                           is_admin=session.get("is_admin", False))
 
 
 # Step 3: one course. Shows that course's years, then its notes.
@@ -414,16 +460,29 @@ def login():
     if request.method == "POST":
         username = request.form["username"].strip().lower()
         password = request.form["password"]
+        ip = visitor_ip()
 
         conn = get_db()
+
+        # Already too many wrong tries? Do not even check the password.
+        if too_many_failures(conn, ip):
+            conn.commit()
+            conn.close()
+            return redirect("/login?error=locked")
+
         admin = conn.execute("SELECT password_hash FROM admins WHERE username = ?", (username,)).fetchone()
-        conn.close()
 
         if admin and check_password_hash(admin["password_hash"], password):
+            conn.execute("DELETE FROM login_attempts WHERE ip = ?", (ip,))   # fresh start
+            conn.commit()
+            conn.close()
             session["is_admin"] = True        # remember that the admin is logged in
             session["admin_user"] = username  # and which admin it is
             return redirect("/courses")       # next step: choose a course
         else:
+            conn.execute("INSERT INTO login_attempts (ip, attempted_at) VALUES (?, ?)", (ip, time_text()))
+            conn.commit()
+            conn.close()
             return redirect("/login?error=1") # wrong details, show the error
 
     if session.get("is_admin"):
@@ -625,44 +684,50 @@ def uploaded_name_ok(name):
     return bool(re.fullmatch(r"\d{6,}_[A-Za-z0-9._-]{1,150}", name))
 
 
-# Save a new note from the form (admin only)
-@app.route("/api/notes", methods=["POST"])
-def add_note():
-    if not session.get("is_admin"):
-        return {"error": "Admin only"}, 403
+# Reads and checks the note form. Used by BOTH "add note" and "edit note", so the
+# rules are written once. Returns (values, error): one of them is None.
+def read_note_form(course):
+    title = request.form.get("title", "").strip()
+    year = request.form.get("year", "")
+    subject = request.form.get("subject", "").strip()
+    unit = request.form.get("unit", "").strip()
+    description = request.form.get("description", "").strip()
 
-    title = request.form["title"]
-    course = request.form.get("course", "").upper()
-    year = request.form["year"]
+    if not title or not subject or not unit:
+        return None, "Please fill in the title, subject and unit."
 
     # The course must exist and the year must belong to that course
     courses = get_courses()
     if course not in courses:
-        return {"error": "Please choose a valid course."}, 400
+        return None, "Please choose a valid course."
     if year not in [y["code"] for y in years_for(courses[course]["years"])]:
-        return {"error": course + " does not have " + year + "."}, 400
+        return None, course + " does not have " + year + "."
 
-    subject = request.form["subject"]
-    unit = request.form["unit"]
-    description = request.form["description"]
+    values = {"title": title, "year": year, "subject": subject,
+              "unit": unit, "description": description}
+    return values, None
 
-    # Save the file if the admin chose one
-    filename = ""
+
+# Keeps the file that came with the note form (if any).
+# Returns (filename, error_response). The filename is "" when no file was sent.
+def store_note_file():
+    # Big files were already sent straight to Supabase by the browser: check it is really there
     already = request.form.get("uploaded_filename", "").strip()
-    file = request.files.get("file")
     if already:
-        # The browser already sent the file straight to Supabase: check it is really there
         if not USE_SUPABASE or not uploaded_name_ok(already):
-            return {"error": "Invalid file name."}, 400
+            return None, ({"error": "Invalid file name."}, 400)
         try:
             import requests
             found = requests.head(file_url(already), timeout=20)
             if found.status_code != 200:
-                return {"error": "The file did not finish uploading. Please try again."}, 400
+                return None, ({"error": "The file did not finish uploading. Please try again."}, 400)
         except Exception:
-            return {"error": "Could not check the uploaded file. Please try again."}, 500
-        filename = already
-    elif file and file.filename != "":
+            return None, ({"error": "Could not check the uploaded file. Please try again."}, 500)
+        return already, None
+
+    # A normal (small) file comes inside the form itself
+    file = request.files.get("file")
+    if file and file.filename != "":
         filename = str(int(time.time())) + "_" + secure_filename(file.filename)
         try:
             save_upload(filename, file.read(), file.mimetype)
@@ -673,15 +738,71 @@ def add_note():
                 reason = str(response.status_code) + " " + response.text[:200]
             if SUPABASE_KEY:
                 reason = reason.replace(SUPABASE_KEY, "***")
-            return {"error": "Could not upload the file (" + reason + ")"}, 500
+            return None, ({"error": "Could not upload the file (" + reason + ")"}, 500)
+        return filename, None
+
+    return "", None
+
+
+# Save a new note from the form (admin only)
+@app.route("/api/notes", methods=["POST"])
+def add_note():
+    if not session.get("is_admin"):
+        return {"error": "Admin only"}, 403
+
+    course = request.form.get("course", "").upper()
+    values, error = read_note_form(course)
+    if error:
+        return {"error": error}, 400
+
+    filename, problem = store_note_file()
+    if problem:
+        return problem
 
     conn = get_db()
     conn.execute(
         "INSERT INTO notes (title, course, year, subject, unit, description, filename, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (title, course, year, subject, unit, description, filename, datetime.now().isoformat(timespec="seconds"))
+        (values["title"], course, values["year"], values["subject"], values["unit"],
+         values["description"], filename, datetime.now().isoformat(timespec="seconds"))
     )
     conn.commit()
     conn.close()
+    return jsonify(ok=True)
+
+
+# Change an existing note (admin only). The note stays in its own course.
+# A new file is optional: without one, the old file is kept.
+@app.route("/api/notes/<int:note_id>", methods=["PUT"])
+def edit_note(note_id):
+    if not session.get("is_admin"):
+        return {"error": "Admin only"}, 403
+
+    conn = get_db()
+    row = conn.execute("SELECT course, filename FROM notes WHERE id = ?", (note_id,)).fetchone()
+    conn.close()
+    if not row:
+        return {"error": "This note no longer exists."}, 404
+
+    values, error = read_note_form(row["course"])
+    if error:
+        return {"error": error}, 400
+
+    new_file, problem = store_note_file()
+    if problem:
+        return problem
+
+    filename = new_file or row["filename"]     # no new file -> keep the old one
+    conn = get_db()
+    conn.execute(
+        "UPDATE notes SET title = ?, year = ?, subject = ?, unit = ?, description = ?, filename = ? WHERE id = ?",
+        (values["title"], values["year"], values["subject"], values["unit"],
+         values["description"], filename, note_id)
+    )
+    conn.commit()
+    conn.close()
+
+    if new_file and row["filename"]:
+        delete_upload(row["filename"])         # the old file is replaced, so remove it
     return jsonify(ok=True)
 
 

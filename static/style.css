@@ -13,6 +13,11 @@
     --border: #e3e8f1;
     --background: #f3f6fc;
 
+    /* Fonts: Playfair Display for big headings, Inter for everything else.
+       The other names after the commas are used only if the first font cannot load. */
+    --font-heading: "Playfair Display", Georgia, "Times New Roman", serif;
+    --font-body: "Inter", "Segoe UI", system-ui, Arial, sans-serif;
+
     /* One colour for each year (used on cards and tags) */
     --fy: #3478f6;
     --fy-soft: #dfeaff;
@@ -43,8 +48,14 @@ body {
     margin: 0;
     background: var(--background);
     color: var(--text);
-    font-family: "Segoe UI", system-ui, Arial, sans-serif;
+    font-family: var(--font-body);
     line-height: 1.45;
+}
+
+/* Big headings use the serif font. Everything else (text, menus, buttons) stays Inter. */
+h1,
+h2 {
+    font-family: var(--font-heading);
 }
 
 /* ---------- Website background: soft gradient + two big circles ---------- */
@@ -154,6 +165,8 @@ svg.ico {
     font: inherit;
     font-size: 14px;
     font-weight: 700;
+    white-space: nowrap;
+    /* "Add Note" stays on one line */
     text-decoration: none;
     cursor: pointer;
     box-shadow: 0 4px 14px #74e0ca55;
@@ -189,6 +202,8 @@ svg.ico {
     color: #dfe7ff;
     display: grid;
     place-items: center;
+    flex-shrink: 0;
+    /* never squeezed narrower, even on a small phone */
     transition: background 0.15s;
 }
 
@@ -524,6 +539,27 @@ a.back-btn {
     grid-template-columns: 1fr 2fr;
     gap: 10px;
     box-shadow: 0 2px 10px #172a5a0d;
+}
+
+/* The search bar on the "Choose a course" page: one wide box instead of two columns */
+.filters.search-only {
+    grid-template-columns: 1fr;
+}
+
+.global-search {
+    margin: 4px 0 18px;
+}
+
+/* In the search results the second line (course · year · subject · unit) may wrap,
+   so on a phone nothing important is cut off with "..." */
+.global-search .note-main p {
+    white-space: normal;
+}
+
+.search-hint {
+    margin: 8px 4px 0;
+    font-size: 13px;
+    color: var(--muted-text);
 }
 
 select,
@@ -963,5 +999,49 @@ label {
         height: 260px;
         left: -110px;
         bottom: -110px;
+    }
+}
+
+
+/* ---------- Small phones ----------
+   Found by testing at 320px wide: the admin header was too wide (the page scrolled
+   sideways) and the buttons were smaller than a fingertip. */
+@media (max-width: 480px) {
+    .brand {
+        font-size: 18px;
+    }
+
+    .nav-actions {
+        gap: 8px;
+    }
+
+    /* "Add Note" becomes just the round + icon (it still has an aria-label for screen readers) */
+    .pill-text {
+        display: none;
+    }
+
+    .pill-btn {
+        padding: 6px;
+    }
+}
+
+@media (max-width: 700px) {
+
+    /* Buttons are at least 40px high, so they are easy to tap */
+    .icon-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .round-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .back-btn,
+    a.back-btn {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
     }
 }

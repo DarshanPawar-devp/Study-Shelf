@@ -12,6 +12,7 @@
     <title>{{ course_code }} | StudyShelf</title>
 
     <!-- Connects the CSS file from Flask's static folder -->
+    {% include "_fonts.html" %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
@@ -131,8 +132,8 @@
 
             <div class="dialog-title">
                 <div>
-                    <h2>Add Study Material</h2>
-                    <p>Adding to {{ course_code }}. You can attach an optional file.</p>
+                    <h2 id="dialogTitle">Add Study Material</h2>
+                    <p id="dialogSubtitle">Adding to {{ course_code }}. You can attach an optional file.</p>
                 </div>
 
                 <!-- Closes the popup window -->
@@ -182,7 +183,7 @@
 
             <!-- File input accepts only selected document/image formats -->
             <label>
-                Upload File (optional)
+                <span id="fileLabel">Upload File (optional)</span>
                 <input name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg">
             </label>
 

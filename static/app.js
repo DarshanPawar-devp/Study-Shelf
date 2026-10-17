@@ -5,7 +5,8 @@
    2. Show them as cards
    3. Filter by year, subject and search text
    4. Add a new note (with optional file) - ADMIN ONLY
-   5. Delete a note - ADMIN ONLY
+   5. Edit a note - ADMIN ONLY
+   6. Delete a note - ADMIN ONLY
    ========================================================== */
 
 
@@ -163,12 +164,13 @@ function showNotes() {
 
         const hasFile = Boolean(note.file_url);
 
-        // items inside the 3-dots menu (Delete is added ONLY for the admin)
+        // items inside the 3-dots menu (Edit and Delete are added ONLY for the admin)
         let menuItems = "";
         if (hasFile) {
             menuItems += `<a href="${escapeHtml(note.file_url)}" target="_blank">Open file</a>`;
         }
         if (isAdmin) {
+            menuItems += `<button class="edit" data-id="${note.id}">Edit</button>`;
             menuItems += `<button class="delete" data-id="${note.id}">Delete</button>`;
         }
 
@@ -273,19 +275,38 @@ function uploadToSupabase(url, file) {
 
 if (isAdmin && addButton && modal) {
 
-    // Open the popup
-    addButton.addEventListener("click", () => {
-        messageText.textContent = "";   // clear old messages
+    // The same popup is used to ADD a note and to EDIT a note.
+    // editingNote is null while adding, or the note being changed while editing.
+    let editingNote = null;
+    const dialogTitle = document.getElementById("dialogTitle");
+    const dialogSubtitle = document.getElementById("dialogSubtitle");
+    const fileLabel = document.getElementById("fileLabel");
+    // Remember the "Add" texts written in index.html, so we can bring them back
+    const addTexts = [dialogTitle.textContent, dialogSubtitle.textContent, fileLabel.textContent];
 
-        // If a year is already chosen, start the form on that year
-        if (yearSelect.value !== "all") {
-            noteForm.elements["year"].value = yearSelect.value;
-        }
+    // Open the popup
+    function openPopup() {
+        messageText.textContent = "";   // clear old messages
         if (typeof modal.showModal === "function") {
             modal.showModal();          // built-in <dialog> method
         } else {
             modal.setAttribute("open", "");   // fallback for old browsers
         }
+    }
+
+    // "Add Note" button: an empty form with the Add texts
+    addButton.addEventListener("click", () => {
+        editingNote = null;
+        noteForm.reset();
+        dialogTitle.textContent = addTexts[0];
+        dialogSubtitle.textContent = addTexts[1];
+        fileLabel.textContent = addTexts[2];
+
+        // If a year is already chosen, start the form on that year
+        if (yearSelect.value !== "all") {
+            noteForm.elements["year"].value = yearSelect.value;
+        }
+        openPopup();
     });
 
     // Close the popup (FIXED: this line was written twice before)
@@ -336,12 +357,15 @@ if (isAdmin && addButton && modal) {
                 messageText.textContent = "Saving...";
             }
 
-            const response = await fetch("/api/notes", {
-                method: "POST",
+            // PUT changes the note we are editing, POST makes a new note
+            const url = editingNote ? "/api/notes/" + editingNote.id : "/api/notes";
+            const response = await fetch(url, {
+                method: editingNote ? "PUT" : "POST",
                 body: formData
             });
 
             if (response.ok) {
+                editingNote = null;
                 noteForm.reset();   // clear the form
                 modal.close();      // close popup
                 loadNotes();        // reload so the new card appears
@@ -352,6 +376,34 @@ if (isAdmin && addButton && modal) {
         } catch (error) {
             messageText.textContent = "Server error. Please try again.";
         }
+    });
+
+    // Edit a note. The Edit button is inside each card's 3-dots menu, and cards are
+    // created by JavaScript, so we listen on the parent (event delegation, like Delete).
+    notesBox.addEventListener("click", (event) => {
+        const button = event.target.closest(".edit");
+        if (!button) return;
+
+        // find the note in the list we already loaded (no new request is needed)
+        const note = allNotes.find(n => String(n.id) === button.dataset.id);
+        if (!note) return;
+
+        editingNote = note;
+        noteForm.reset();
+        noteForm.elements["title"].value = note.title;
+        noteForm.elements["year"].value = note.year;
+        noteForm.elements["subject"].value = note.subject;
+        noteForm.elements["unit"].value = note.unit;
+        noteForm.elements["description"].value = note.description || "";
+
+        dialogTitle.textContent = "Edit Study Material";
+        dialogSubtitle.textContent = note.file_url
+            ? "Current file: " + getFileName(note.file_url) + ". Choose a file only to replace it."
+            : "This note has no file yet. You can attach one.";
+        fileLabel.textContent = note.file_url ? "Replace File (optional)" : "Upload File (optional)";
+
+        button.closest(".menu").removeAttribute("open");   // close the 3-dots menu
+        openPopup();
     });
 }
 

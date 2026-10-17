@@ -11,12 +11,12 @@
 
         {% if show_add %}
         <!-- "Add Note" is shown only on a course page, because a note belongs to one course -->
-        <button id="addNoteBtn" class="pill-btn">
+        <button id="addNoteBtn" class="pill-btn" aria-label="Add note">
             <span class="icon-circle"><svg class="ico" viewBox="0 0 24 24">
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                 </svg></span>
-            Add Note
+            <span class="pill-text">Add Note</span>
         </button>
         {% endif %}
 
