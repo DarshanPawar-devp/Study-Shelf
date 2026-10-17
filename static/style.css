@@ -13,9 +13,8 @@
     --border: #e3e8f1;
     --background: #f3f6fc;
 
-    /* Fonts: Playfair Display for big headings, Inter for everything else.
-       The other names after the commas are used only if the first font cannot load. */
-    --font-heading: "Playfair Display", Georgia, "Times New Roman", serif;
+    /* One font for the whole site: Inter.
+       The other names after the commas are used only if Inter cannot load. */
     --font-body: "Inter", "Segoe UI", system-ui, Arial, sans-serif;
 
     /* One colour for each year (used on cards and tags) */
@@ -52,10 +51,11 @@ body {
     line-height: 1.45;
 }
 
-/* Big headings use the serif font. Everything else (text, menus, buttons) stays Inter. */
+/* Headings use the same Inter font as everything else. */
 h1,
-h2 {
-    font-family: var(--font-heading);
+h2,
+h3 {
+    font-family: var(--font-body);
 }
 
 /* ---------- Website background: soft gradient + two big circles ---------- */
