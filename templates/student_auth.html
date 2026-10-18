@@ -7,31 +7,48 @@
     <title>
         {% if mode == 'register' %}Create account{% elif mode == 'forgot' %}Forgot password{% elif mode == 'reset' %}New password{% elif mode == 'setup' %}Not set up{% else %}Student login{% endif %}
         | StudyShelf</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     {% include "_fonts.html" %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
 </head>
 
 <body>
-    {% include "_header.html" %}
 
-    <main>
-        <section class="ss-auth">
-            <div class="ss-card">
+    <!-- LEFT: branding and the bookshelf (same as the admin login) -->
+    <div class="shelf-side">
+        <h1><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="login-logo" width="44" height="44">Study<span>Shelf</span></h1>
+        <p>Browse and download study notes, and get notified when new notes arrive for your course.</p>
+        <br>
+        <div class="books">
+            <div class="book b1"></div>
+            <div class="book b2"></div>
+            <div class="book b3"></div>
+            <div class="book b4"></div>
+            <div class="book b5"></div>
+            <div class="book b6"></div>
+            <div class="book b7"></div>
+        </div>
+        <div class="shelf-board"></div>
+    </div>
+
+    <!-- RIGHT: the student form -->
+    <div class="form-side">
+        <div class="login-box">
 
                 {% if mode == 'setup' %}
-                <h1>Student accounts are not set up yet</h1>
-                <p class="ss-muted">The site owner still needs to finish the setup (see STUDENT_FEATURES.md).
+                <h2>Student accounts are not set up yet</h2>
+                <p class="sub">The site owner still needs to finish the setup (see STUDENT_FEATURES.md).
                     You can still browse and download notes.</p>
-                <a class="ss-btn" href="/courses">Browse notes</a>
+                <a class="login-btn btn-link" href="/courses">Browse notes</a>
 
                 {% else %}
-                <h1>
+                <h2>
                     {% if mode == 'register' %}Create your account
                     {% elif mode == 'forgot' %}Forgot your password?
                     {% elif mode == 'reset' %}Choose a new password
                     {% else %}Student login{% endif %}
-                </h1>
-                <p class="ss-muted">
+                </h2>
+                <p class="sub">
                     {% if mode == 'register' %}Pick your course to get notifications when new notes are uploaded.
                     {% elif mode == 'forgot' %}Enter your email and we will send you a reset link.
                     {% elif mode == 'reset' %}Enter a new password for your account.
@@ -54,7 +71,7 @@
                             <button type="button" class="ss-link-btn" data-toggle-pw>Show</button>
                         </span>
                     </label>
-                    <button type="submit" class="ss-btn">Log in</button>
+                    <button type="submit" class="login-btn">Log in</button>
                 </form>
                 <p class="ss-links">
                     <a href="/student/forgot">Forgot password?</a> &middot;
@@ -92,7 +109,7 @@
                     <label class="ss-field">Year <small>(optional)</small>
                         <select name="year" id="year"><option value="">All years</option></select>
                     </label>
-                    <button type="submit" class="ss-btn">Create account</button>
+                    <button type="submit" class="login-btn">Create account</button>
                 </form>
                 <p class="ss-links">Already have an account? <a href="/student/login">Log in</a></p>
 
@@ -102,7 +119,7 @@
                     <label class="ss-field">Email
                         <input type="email" name="email" autocomplete="email" required>
                     </label>
-                    <button type="submit" class="ss-btn">Send reset link</button>
+                    <button type="submit" class="login-btn">Send reset link</button>
                 </form>
                 <p class="ss-links"><a href="/student/login">Back to login</a></p>
 
@@ -116,15 +133,16 @@
                             <button type="button" class="ss-link-btn" data-toggle-pw>Show</button>
                         </span>
                     </label>
-                    <button type="submit" class="ss-btn">Save new password</button>
+                    <button type="submit" class="login-btn">Save new password</button>
                 </form>
                 <p class="ss-alert" id="resetMsg" role="status" hidden></p>
                 <p class="ss-links"><a href="/student/login">Back to login</a></p>
                 {% endif %}
                 {% endif %}
-            </div>
-        </section>
-    </main>
+
+            <a href="/" class="back-link">&larr; Back</a>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='auth.js') }}"></script>
 </body>
