@@ -17,6 +17,7 @@ const usernameInput = document.getElementById("adminUsername");
 const passwordInput = document.getElementById("adminPassword");
 const passwordLabel = document.getElementById("passwordLabel");
 const message = document.getElementById("adminMessage");
+const labelText = document.getElementById("usernameLabelText");
 
 // null = adding a new admin, otherwise the username being edited
 let editingUser = null;
@@ -45,6 +46,8 @@ if (addButton) addButton.addEventListener("click", () => {
     title.textContent = "Add admin";
     hint.textContent = "Username: letters, numbers, dots, dashes. Password: at least 6 characters.";
     usernameLabel.style.display = "";
+        labelText.textContent = "Username";
+        usernameInput.maxLength = 30;
     usernameInput.required = true;
     openModal();
     usernameInput.focus();
@@ -78,9 +81,32 @@ document.querySelectorAll(".rename-admin").forEach(button => {
         title.textContent = "Rename " + editingUser;
         hint.textContent = "The password stays the same. Use the new username next time you log in.";
         usernameLabel.style.display = "";
+        labelText.textContent = "Username";
+        usernameInput.maxLength = 30;
         usernameInput.required = true;
         usernameInput.value = editingUser;
         passwordLabel.style.display = "none";   // no password needed to rename
+        passwordInput.required = false;
+        openModal();
+        usernameInput.focus();
+    });
+});
+
+
+/* ---------- 2c. DISPLAY NAME (shown as "Uploaded by") ---------- */
+document.querySelectorAll(".display-admin").forEach(button => {
+    button.addEventListener("click", () => {
+        editingUser = button.dataset.user;
+        editMode = "display";
+        form.reset();
+        title.textContent = "Display name for " + editingUser;
+        hint.textContent = "Shown as \"Uploaded by\" on this admin's notes, e.g. Faculty 1. Leave empty to show \"Admin\".";
+        labelText.textContent = "Display name";
+        usernameLabel.style.display = "";
+        usernameInput.required = false;
+        usernameInput.maxLength = 40;
+        usernameInput.value = button.dataset.name || "";
+        passwordLabel.style.display = "none";
         passwordInput.required = false;
         openModal();
         usernameInput.focus();
@@ -97,7 +123,11 @@ form.addEventListener("submit", async (event) => {
     let method = "POST";
     let body = { username: usernameInput.value, password: passwordInput.value };
 
-    if (editingUser && editMode === "rename") {
+    if (editingUser && editMode === "display") {
+        url = "/api/admins/" + encodeURIComponent(editingUser) + "/display-name";
+        method = "PUT";
+        body = { display_name: usernameInput.value };
+    } else if (editingUser && editMode === "rename") {
         url = "/api/admins/" + encodeURIComponent(editingUser) + "/rename";
         method = "PUT";
         body = { username: usernameInput.value };

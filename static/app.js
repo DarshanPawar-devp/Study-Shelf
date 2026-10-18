@@ -102,9 +102,36 @@ async function loadNotes() {
 
         fillSubjects();   // build the subject dropdown from the data
         showNotes();      // draw the cards
+        openNoteFromLink();   // a notification link looks like /course/BCA?note=5
     } catch (error) {
         notesBox.innerHTML =
             '<div class="empty">Could not load notes. Is the Flask server running?</div>';
+    }
+}
+
+
+/* ---------- 4B. OPEN A NOTE FROM A NOTIFICATION LINK ----------
+   /course/BCA?note=5 skips the year picker, shows that note's year and highlights the note.
+   It runs only once, so changing filters later behaves normally. */
+let openedFromLink = false;
+function openNoteFromLink() {
+    if (openedFromLink) return;
+    openedFromLink = true;
+    const id = new URLSearchParams(location.search).get("note");
+    const note = id && allNotes.find(n => String(n.id) === id);
+    if (!note) return;
+
+    yearSelect.value = note.year;
+    if (changeYearBtn) changeYearBtn.textContent = "\u2190 Change year (" + note.year + ")";
+    yearPicker.hidden = true;
+    notesView.hidden = false;
+    fillSubjects();
+    showNotes();
+
+    const row = notesBox.querySelector('[data-note-id="' + note.id + '"]');
+    if (row) {
+        row.classList.add("ss-highlight");
+        row.scrollIntoView({ block: "center" });
     }
 }
 
@@ -175,12 +202,13 @@ function showNotes() {
         }
 
         return `
-        <article class="note-row year-${escapeHtml(note.year)}">
+        <article class="note-row year-${escapeHtml(note.year)}" data-note-id="${note.id}">
             <div class="note-icon">${ICON_FILE}</div>
 
             <div class="note-main">
                 <h3 title="${escapeHtml(note.title)}">${escapeHtml(note.title)}</h3>
                 <p>${escapeHtml(details)}</p>
+                <p class="ss-uploader">Uploaded by: ${escapeHtml(note.uploader_name || "Uploader unknown")}</p>
             </div>
 
             <div class="note-meta">
