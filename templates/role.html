@@ -29,11 +29,17 @@
 
             <div class="choice-grid role-grid">
 
-                <!-- Student: no login needed -->
-                <a class="choice-card" href="/student">
+                <!-- Student: opens the student login (dashboard if already logged in) -->
+                <a class="choice-card" href="{% if student %}/dashboard{% elif students_enabled %}/student/login{% else %}/student{% endif %}">
                     <span class="year-text">
                         <strong>Student</strong>
+                        {% if student %}
+                        <span>Open your dashboard</span>
+                        {% elif students_enabled %}
+                        <span>Log in or create an account</span>
+                        {% else %}
                         <span>Browse and download notes</span>
+                        {% endif %}
                     </span>
                     <span class="year-icon"><svg class="ico" viewBox="0 0 24 24">
                             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -59,14 +65,6 @@
 
             </div>
 
-            {% if students_enabled and not student %}
-            <p class="ss-role-note">
-                Want notifications for your course?
-                <a href="/student/login">Student login</a> or <a href="/student/register">create an account</a>.
-            </p>
-            {% elif student %}
-            <p class="ss-role-note">Signed in as {{ student.name }}. <a href="/dashboard">Open your dashboard</a>.</p>
-            {% endif %}
         </section>
     </main>
 
