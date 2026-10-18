@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Analytics | StudyShelf</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     {% include "_fonts.html" %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -23,7 +24,7 @@
 
         <section class="year-picker">
             <div class="picker-bar">
-                <a href="/courses" class="back-btn">&larr; Back to courses</a>
+                {% with active='analytics' %}{% include "_tabs.html" %}{% endwith %}
                 <div class="ss-range" role="group" aria-label="Date range">
                     <button type="button" class="small-btn ss-range-btn is-on" data-days="7">Last 7 days</button>
                     <button type="button" class="small-btn ss-range-btn" data-days="30">Last 30 days</button>

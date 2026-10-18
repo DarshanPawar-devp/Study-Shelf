@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Notifications | StudyShelf</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     {% include "_fonts.html" %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -23,7 +24,7 @@
 
         <section class="year-picker">
             <div class="picker-bar">
-                <a href="/dashboard" class="back-btn">&larr; Dashboard</a>
+                {% with active='notifications' %}{% include "_tabs.html" %}{% endwith %}
                 {% if unread %}<button type="button" class="small-btn" id="pageMarkAll">Mark all as read</button>{% endif %}
             </div>
 

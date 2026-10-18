@@ -1045,3 +1045,77 @@ label {
         align-items: center;
     }
 }
+
+/* ---------- Tab bar (admin + student pages) ----------
+   Plain text tabs; the page you are on gets a filled pill. */
+.tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+.tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab {
+    flex: none;
+    white-space: nowrap;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted-text);
+    padding: 7px 14px;
+    border-radius: 8px;
+    transition: background .15s, color .15s;
+}
+
+.tab:hover {
+    color: var(--text);
+    background: #e9eef8;
+}
+
+.tab.is-active,
+.tab[aria-current="page"] {
+    background: var(--navy);
+    color: #fff;
+    font-weight: 600;
+}
+
+.tab:focus-visible {
+    outline: 3px solid var(--blue);
+    outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+    .tab {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+    }
+}
+
+/* Logo next to the StudyShelf name */
+a.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-logo {
+    width: 32px;
+    height: 32px;
+    flex: none;
+    display: block;
+}
+
+@media (max-width: 480px) {
+    .brand-logo {
+        width: 26px;
+        height: 26px;
+    }
+}

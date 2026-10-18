@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Students | StudyShelf</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     {% include "_fonts.html" %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -23,8 +24,7 @@
 
         <section class="year-picker">
             <div class="picker-bar">
-                <a href="/courses" class="back-btn">&larr; Back to courses</a>
-                <a href="/analytics" class="back-btn">Analytics</a>
+                {% with active='students' %}{% include "_tabs.html" %}{% endwith %}
             </div>
 
             <form method="GET" action="/students" class="ss-filters">

@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard | StudyShelf</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     {% include "_fonts.html" %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -22,6 +23,10 @@
         </section>
 
         <section class="year-picker">
+            <div class="picker-bar">
+                {% with active='dashboard' %}{% include "_tabs.html" %}{% endwith %}
+            </div>
+
             {% if not profile.course %}
             <p class="ss-alert ss-alert-error" role="alert">You have not chosen a course yet, so you will not get notifications. Pick one below.</p>
             {% endif %}

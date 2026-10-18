@@ -379,3 +379,15 @@ input:focus {
     padding: 20px 16px 30px;
   }
 }
+/* Logo beside the StudyShelf name on the login page */
+.shelf-side h1 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.login-logo {
+    width: 44px;
+    height: 44px;
+    flex: none;
+}

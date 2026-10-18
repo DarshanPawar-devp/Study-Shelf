@@ -1,0 +1,18 @@
+{# Tab bar shared by the admin and student pages. Set `active` via a with-block before including. #}
+<nav class="tabs" aria-label="Sections">
+    {% if is_admin %}
+    <a href="/courses" class="tab {{ 'is-active' if active == 'courses' }}" {% if active == 'courses' %}aria-current="page"{% endif %}>Courses</a>
+    <a href="/manage" class="tab {{ 'is-active' if active == 'manage' }}" {% if active == 'manage' %}aria-current="page"{% endif %}>Manage courses</a>
+    <a href="/admins" class="tab {{ 'is-active' if active == 'admins' }}" {% if active == 'admins' %}aria-current="page"{% endif %}>Manage admins</a>
+    {% if students_enabled %}
+    <a href="/students" class="tab {{ 'is-active' if active == 'students' }}" {% if active == 'students' %}aria-current="page"{% endif %}>Students</a>
+    <a href="/analytics" class="tab {{ 'is-active' if active == 'analytics' }}" {% if active == 'analytics' %}aria-current="page"{% endif %}>Analytics</a>
+    {% endif %}
+    {% elif student %}
+    <a href="/dashboard" class="tab {{ 'is-active' if active == 'dashboard' }}" {% if active == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+    <a href="/courses" class="tab {{ 'is-active' if active == 'courses' }}" {% if active == 'courses' %}aria-current="page"{% endif %}>All courses</a>
+    <a href="/notifications" class="tab {{ 'is-active' if active == 'notifications' }}" {% if active == 'notifications' %}aria-current="page"{% endif %}>Notifications</a>
+    {% else %}
+    <a href="/" class="tab">&larr; Back</a>
+    {% endif %}
+</nav>

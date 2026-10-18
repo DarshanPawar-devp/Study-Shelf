@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Choose a course | StudyShelf</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     {% include "_fonts.html" %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -52,15 +53,7 @@
         <!-- STEP 2: one card for every course listed in COURSES (app.py) -->
         <section class="year-picker">
             <div class="picker-bar">
-                <a href="/" class="back-btn">&larr; Back</a>
-                {% if is_admin %}
-                <a href="/manage" class="back-btn">Manage courses</a>
-                <a href="/admins" class="back-btn">Manage admins</a>
-                {% if students_enabled %}
-                <a href="/students" class="back-btn">Students</a>
-                <a href="/analytics" class="back-btn">Analytics</a>
-                {% endif %}
-                {% endif %}
+                {% with active='courses' %}{% include "_tabs.html" %}{% endwith %}
             </div>
 
             {% if not courses %}

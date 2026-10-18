@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Manage courses | StudyShelf</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     {% include "_fonts.html" %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -25,7 +26,7 @@
 
         <section class="year-picker">
             <div class="picker-bar">
-                <a href="/courses" class="back-btn">&larr; Back to courses</a>
+                {% with active='manage' %}{% include "_tabs.html" %}{% endwith %}
 
                 <!-- Opens the popup to add a new course -->
                 <button type="button" id="addCourseBtn" class="pill-btn">
