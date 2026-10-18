@@ -45,11 +45,15 @@
 
                     <div class="note-main">
                         <h3>{{ a.username }}{% if a.username == me %} (you){% endif %}</h3>
-                        <p>{% if a.is_owner %}Owner &middot; {% endif %}Added {{ a.created_at or "earlier" }}</p>
+                        <p>{% if a.is_owner %}Owner &middot; {% endif %}Added {{ a.created_at or "earlier" }}{% if display_names.get(a.username) %} &middot; Shown as &ldquo;{{ display_names[a.username] }}&rdquo;{% endif %}</p>
                     </div>
 
                     <div class="course-actions">
                         {% if owner or a.username == me %}
+                        {% if students_enabled %}
+                        <button type="button" class="small-btn display-admin" data-user="{{ a.username }}"
+                            data-name="{{ display_names.get(a.username, '') }}">Display name</button>
+                        {% endif %}
                         <button type="button" class="small-btn rename-admin" data-user="{{ a.username }}">Rename</button>
                         <button type="button" class="small-btn change-pass" data-user="{{ a.username }}">Change password</button>
                         {% endif %}
@@ -76,7 +80,7 @@
             </div>
 
             <label id="usernameLabel">
-                Username
+                <span id="usernameLabelText">Username</span>
                 <input name="username" id="adminUsername" maxlength="30" autocomplete="off" placeholder="Example: teacher1">
             </label>
 

@@ -478,6 +478,9 @@ def login():
             conn.close()
             session["is_admin"] = True        # remember that the admin is logged in
             session["admin_user"] = username  # and which admin it is
+            session.pop("student_id", None)   # a browser is an admin OR a student, never both
+            session.pop("student_name", None)
+            session.permanent = False
             return redirect("/courses")       # next step: choose a course
         else:
             conn.execute("INSERT INTO login_attempts (ip, attempted_at) VALUES (?, ?)", (ip, time_text()))
@@ -626,7 +629,10 @@ def get_notes():
     course = request.args.get("course", "").upper()
 
     conn = get_db()
-    if course:
+    if student_features.enabled():
+        # same notes, plus "uploader_name" (from the admins table, never from the browser)
+        rows = student_features.notes_with_uploader(conn, course)
+    elif course:
         rows = conn.execute("SELECT * FROM notes WHERE course = ? ORDER BY id DESC", (course,)).fetchall()
     else:
         rows = conn.execute("SELECT * FROM notes ORDER BY id DESC").fetchall()   # newest first
@@ -760,13 +766,28 @@ def add_note():
         return problem
 
     conn = get_db()
-    conn.execute(
-        "INSERT INTO notes (title, course, year, subject, unit, description, filename, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (values["title"], course, values["year"], values["subject"], values["unit"],
-         values["description"], filename, datetime.now().isoformat(timespec="seconds"))
-    )
+    new_id = None
+    if student_features.enabled():
+        # the uploader is the admin who is logged in (read from the session, not from the form)
+        uploader = student_features.admin_id(conn, session.get("admin_user"))
+        new_id = conn.execute(
+            "INSERT INTO notes (title, course, year, subject, unit, description, filename, created_at, uploaded_by) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            (values["title"], course, values["year"], values["subject"], values["unit"],
+             values["description"], filename, datetime.now().isoformat(timespec="seconds"), uploader)
+        ).fetchone()["id"]
+    else:
+        conn.execute(
+            "INSERT INTO notes (title, course, year, subject, unit, description, filename, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (values["title"], course, values["year"], values["subject"], values["unit"],
+             values["description"], filename, datetime.now().isoformat(timespec="seconds"))
+        )
     conn.commit()
     conn.close()
+
+    # The note is saved. Now tell the students of this course (a failure here never loses the note).
+    if new_id:
+        student_features.notify_students(new_id, course, values["year"])
     return jsonify(ok=True)
 
 
@@ -844,7 +865,8 @@ def admins():
                         "ORDER BY is_owner DESC, created_at, username").fetchall()
     conn.close()
     return render_template("admins.html", admins=rows, me=session.get("admin_user"),
-                           owner=is_owner(), is_admin=True)
+                           owner=is_owner(), is_admin=True,
+                           display_names=student_features.display_names())
 
 
 # Add an admin (for example a teacher)
@@ -976,6 +998,20 @@ def list_admins():
     conn.close()
     print("Database:", "the online database (DATABASE_URL)" if DATABASE_URL else os.path.join(app.root_path, "notes.db"))
     print("Admins  :", ", ".join(r["username"] + (" (owner)" if r["is_owner"] else "") for r in rows))
+
+
+# ---------- Student accounts, notifications, student list, analytics ----------
+# All of that lives in students.py. They switch on only when SUPABASE_ANON_KEY is set
+# and migrations/001_student_features.sql has been run (see STUDENT_FEATURES.md).
+import students as student_features
+
+student_features.init_app(app, {
+    "get_db": get_db, "get_courses": get_courses, "years_for": years_for,
+    "year_codes": YEAR_CODES, "year_names": YEAR_NAMES,
+    "is_admin": is_admin, "can_edit_admin": can_edit_admin,
+    "visitor_ip": visitor_ip, "too_many_failures": too_many_failures,
+    "time_text": time_text, "on_vercel": ON_VERCEL,
+})
 
 
 if __name__ == "__main__":

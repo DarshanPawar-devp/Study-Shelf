@@ -56,6 +56,10 @@
                 {% if is_admin %}
                 <a href="/manage" class="back-btn">Manage courses</a>
                 <a href="/admins" class="back-btn">Manage admins</a>
+                {% if students_enabled %}
+                <a href="/students" class="back-btn">Students</a>
+                <a href="/analytics" class="back-btn">Analytics</a>
+                {% endif %}
                 {% endif %}
             </div>
 

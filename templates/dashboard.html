@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard | StudyShelf</title>
+    {% include "_fonts.html" %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    {% include "_header.html" %}
+
+    <main>
+        <section class="hero">
+            <div>
+                <p class="eyebrow">YOUR DASHBOARD</p>
+                <h1>Hello,<br><em>{{ profile.full_name }}.</em></h1>
+                <p>{% if profile.course %}You are following {{ profile.course }}{% if profile.year %} &middot; {{ profile.year }}{% endif %}.{% else %}Choose your course below to start getting notifications.{% endif %}</p>
+            </div>
+        </section>
+
+        <section class="year-picker">
+            {% if not profile.course %}
+            <p class="ss-alert ss-alert-error" role="alert">You have not chosen a course yet, so you will not get notifications. Pick one below.</p>
+            {% endif %}
+
+            <div class="ss-stats">
+                <a class="ss-stat" href="/notifications">
+                    <span class="ss-stat-num">{{ unread }}</span>
+                    <span class="ss-stat-label">Unread notification{{ '' if unread == 1 else 's' }}</span>
+                </a>
+                <div class="ss-stat">
+                    <span class="ss-stat-num">{{ note_count if note_count is not none else '-' }}</span>
+                    <span class="ss-stat-label">Notes available in {{ profile.course or 'your course' }}</span>
+                </div>
+                <div class="ss-stat">
+                    <span class="ss-stat-num">{{ profile.course or '-' }}</span>
+                    <span class="ss-stat-label">{{ course_info.name if course_info else 'No course selected' }}</span>
+                </div>
+            </div>
+
+            <div class="ss-quick">
+                {% if profile.course %}<a class="ss-btn" href="/course/{{ profile.course }}">Browse {{ profile.course }} notes</a>{% endif %}
+                <a class="ss-btn ss-btn-light" href="/courses">All courses</a>
+                <a class="ss-btn ss-btn-light" href="/notifications">Notifications</a>
+            </div>
+
+            <div class="ss-two">
+                <div class="ss-card ss-card-wide">
+                    <h2>Recent notifications</h2>
+                    {% if recent %}
+                    <ul class="ss-list">
+                        {% for n in recent %}
+                        <li>
+                            <a href="/course/{{ n.course }}?note={{ n.note_id }}" data-ss-notif="{{ n.id }}"
+                                class="{{ '' if n.read else 'ss-unread' }}">
+                                <strong>{{ n.title }}</strong>
+                                <span class="ss-muted">{{ n.course }} &middot; {{ n.subject }}{% if not n.read %} &middot; New{% endif %}</span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <a class="ss-link" href="/notifications">See all</a>
+                    {% else %}
+                    <p class="ss-muted">No notifications yet. When a note is uploaded for your course, it shows up here.</p>
+                    {% endif %}
+                </div>
+
+                <div class="ss-card ss-card-wide">
+                    <h2>Your details</h2>
+                    <form id="profileForm" class="ss-form" novalidate>
+                        <label class="ss-field">Full name
+                            <input type="text" name="full_name" maxlength="80" value="{{ profile.full_name }}" required>
+                        </label>
+                        <label class="ss-field">Course
+                            <select name="course" id="course" required data-courses='{{ courses | tojson }}'
+                                data-order='{{ years_order | tojson }}' data-names='{{ year_names | tojson }}'
+                                data-selected-year="{{ profile.year or '' }}">
+                                <option value="">Choose your course</option>
+                                {% for code, info in courses.items() %}
+                                <option value="{{ code }}" {% if profile.course == code %}selected{% endif %}>{{ code }} - {{ info.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label class="ss-field">Year <small>(optional)</small>
+                            <select name="year" id="year"><option value="">All years</option></select>
+                        </label>
+                        <button type="submit" class="ss-btn">Save changes</button>
+                        <p class="ss-alert" id="profileMsg" role="status" hidden></p>
+                    </form>
+                    {% if years %}
+                    <p class="ss-muted ss-small">{{ course_info.name }} has {{ years | length }} year{{ '' if years | length == 1 else 's' }}: {{ years | map(attribute='code') | join(', ') }}.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='auth.js') }}"></script>
+</body>
+
+</html>

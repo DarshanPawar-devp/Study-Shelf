@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+        {% if mode == 'register' %}Create account{% elif mode == 'forgot' %}Forgot password{% elif mode == 'reset' %}New password{% elif mode == 'setup' %}Not set up{% else %}Student login{% endif %}
+        | StudyShelf</title>
+    {% include "_fonts.html" %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    {% include "_header.html" %}
+
+    <main>
+        <section class="ss-auth">
+            <div class="ss-card">
+
+                {% if mode == 'setup' %}
+                <h1>Student accounts are not set up yet</h1>
+                <p class="ss-muted">The site owner still needs to finish the setup (see STUDENT_FEATURES.md).
+                    You can still browse and download notes.</p>
+                <a class="ss-btn" href="/courses">Browse notes</a>
+
+                {% else %}
+                <h1>
+                    {% if mode == 'register' %}Create your account
+                    {% elif mode == 'forgot' %}Forgot your password?
+                    {% elif mode == 'reset' %}Choose a new password
+                    {% else %}Student login{% endif %}
+                </h1>
+                <p class="ss-muted">
+                    {% if mode == 'register' %}Pick your course to get notifications when new notes are uploaded.
+                    {% elif mode == 'forgot' %}Enter your email and we will send you a reset link.
+                    {% elif mode == 'reset' %}Enter a new password for your account.
+                    {% else %}Log in to see notifications for your course.{% endif %}
+                </p>
+
+                {% if error %}<p class="ss-alert ss-alert-error" role="alert">{{ error }}</p>{% endif %}
+                {% if success %}<p class="ss-alert ss-alert-ok" role="status">{{ success }}</p>{% endif %}
+                {% set f = form or {} %}
+
+                {# ---------- LOGIN ---------- #}
+                {% if mode == 'login' %}
+                <form method="POST" action="/student/login" class="ss-form" novalidate>
+                    <label class="ss-field">Email
+                        <input type="email" name="email" value="{{ f.email or '' }}" autocomplete="email" required>
+                    </label>
+                    <label class="ss-field">Password
+                        <span class="ss-pw">
+                            <input type="password" name="password" autocomplete="current-password" required>
+                            <button type="button" class="ss-link-btn" data-toggle-pw>Show</button>
+                        </span>
+                    </label>
+                    <button type="submit" class="ss-btn">Log in</button>
+                </form>
+                <p class="ss-links">
+                    <a href="/student/forgot">Forgot password?</a> &middot;
+                    <a href="/student/register">Create an account</a>
+                </p>
+
+                {# ---------- REGISTER ---------- #}
+                {% elif mode == 'register' %}
+                <form method="POST" action="/student/register" class="ss-form" novalidate>
+                    <label class="ss-field">Full name
+                        <input type="text" name="full_name" maxlength="80" value="{{ f.full_name or '' }}"
+                            autocomplete="name" required>
+                    </label>
+                    <label class="ss-field">Email
+                        <input type="email" name="email" value="{{ f.email or '' }}" autocomplete="email" required>
+                    </label>
+                    <label class="ss-field">Password <small>(at least 8 characters)</small>
+                        <span class="ss-pw">
+                            <input type="password" name="password" minlength="8" maxlength="72"
+                                autocomplete="new-password" required>
+                            <button type="button" class="ss-link-btn" data-toggle-pw>Show</button>
+                        </span>
+                    </label>
+                    <label class="ss-field">Course
+                        <select name="course" id="course" required data-courses='{{ courses | tojson }}'
+                            data-order='{{ years_order | tojson }}' data-names='{{ year_names | tojson }}'
+                            data-selected-year="{{ f.year or '' }}">
+                            <option value="">Choose your course</option>
+                            {% for code, info in courses.items() %}
+                            <option value="{{ code }}" {% if f.course == code %}selected{% endif %}>{{ code }} - {{ info.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="ss-field">Year <small>(optional)</small>
+                        <select name="year" id="year"><option value="">All years</option></select>
+                    </label>
+                    <button type="submit" class="ss-btn">Create account</button>
+                </form>
+                <p class="ss-links">Already have an account? <a href="/student/login">Log in</a></p>
+
+                {# ---------- FORGOT ---------- #}
+                {% elif mode == 'forgot' %}
+                <form method="POST" action="/student/forgot" class="ss-form" novalidate>
+                    <label class="ss-field">Email
+                        <input type="email" name="email" autocomplete="email" required>
+                    </label>
+                    <button type="submit" class="ss-btn">Send reset link</button>
+                </form>
+                <p class="ss-links"><a href="/student/login">Back to login</a></p>
+
+                {# ---------- RESET (the email link brings the student here) ---------- #}
+                {% elif mode == 'reset' %}
+                <form id="resetForm" class="ss-form" data-url="{{ supabase_url }}" data-key="{{ anon_key }}" novalidate>
+                    <label class="ss-field">New password <small>(at least 8 characters)</small>
+                        <span class="ss-pw">
+                            <input type="password" id="newPassword" minlength="8" maxlength="72"
+                                autocomplete="new-password" required>
+                            <button type="button" class="ss-link-btn" data-toggle-pw>Show</button>
+                        </span>
+                    </label>
+                    <button type="submit" class="ss-btn">Save new password</button>
+                </form>
+                <p class="ss-alert" id="resetMsg" role="status" hidden></p>
+                <p class="ss-links"><a href="/student/login">Back to login</a></p>
+                {% endif %}
+                {% endif %}
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='auth.js') }}"></script>
+</body>
+
+</html>

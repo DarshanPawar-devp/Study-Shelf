@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Students | StudyShelf</title>
+    {% include "_fonts.html" %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    {% include "_header.html" %}
+
+    <main>
+        <section class="hero">
+            <div>
+                <p class="eyebrow">STUDENT MANAGEMENT</p>
+                <h1>Registered<br><em>students.</em></h1>
+                <p>{{ total }} student{{ '' if total == 1 else 's' }} found. Times are in UTC.</p>
+            </div>
+        </section>
+
+        <section class="year-picker">
+            <div class="picker-bar">
+                <a href="/courses" class="back-btn">&larr; Back to courses</a>
+                <a href="/analytics" class="back-btn">Analytics</a>
+            </div>
+
+            <form method="GET" action="/students" class="ss-filters">
+                <input type="search" name="q" value="{{ q }}" placeholder="Search name or email" aria-label="Search name or email">
+                <select name="course" aria-label="Filter by course">
+                    <option value="">All courses</option>
+                    {% for code in courses %}<option value="{{ code }}" {% if course == code %}selected{% endif %}>{{ code }}</option>{% endfor %}
+                    <option value="NONE" {% if course == 'NONE' %}selected{% endif %}>Not selected</option>
+                </select>
+                <select name="sort" aria-label="Sort by">
+                    <option value="registered" {% if sort == 'registered' %}selected{% endif %}>Registration date</option>
+                    <option value="active" {% if sort == 'active' %}selected{% endif %}>Last active</option>
+                    <option value="name" {% if sort == 'name' %}selected{% endif %}>Name</option>
+                </select>
+                <select name="dir" aria-label="Order">
+                    <option value="desc" {% if direction == 'desc' %}selected{% endif %}>Newest first</option>
+                    <option value="asc" {% if direction == 'asc' %}selected{% endif %}>Oldest first</option>
+                </select>
+                <button type="submit" class="ss-btn">Apply</button>
+            </form>
+
+            {% if students %}
+            <div class="ss-table-wrap">
+                <table class="ss-table">
+                    <thead>
+                        <tr><th>Name</th><th>Email</th><th>Course</th><th>Registered</th><th>Last active</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for s in students %}
+                        <tr>
+                            <td>{{ s.name }}</td>
+                            <td>{{ s.email }}</td>
+                            <td>{{ s.course }}{% if s.year %} &middot; {{ s.year }}{% endif %}</td>
+                            <td>{{ s.registered }}</td>
+                            <td>{{ s.last_active }}</td>
+                            <td>{{ s.status }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="ss-pager">
+                {% if page > 1 %}<a class="small-btn" href="/students?{{ base_query }}&page={{ page - 1 }}">&larr; Previous</a>{% endif %}
+                <span>Page {{ page }} of {{ pages }}</span>
+                {% if page < pages %}<a class="small-btn" href="/students?{{ base_query }}&page={{ page + 1 }}">Next &rarr;</a>{% endif %}
+            </div>
+            {% else %}
+            <div class="notes"><div class="empty">No students match. {% if not q and not course %}Nobody has registered yet.{% endif %}</div></div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+
+</html>

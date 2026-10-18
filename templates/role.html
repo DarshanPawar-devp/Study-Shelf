@@ -58,6 +58,15 @@
                 </a>
 
             </div>
+
+            {% if students_enabled and not student %}
+            <p class="ss-role-note">
+                Want notifications for your course?
+                <a href="/student/login">Student login</a> or <a href="/student/register">create an account</a>.
+            </p>
+            {% elif student %}
+            <p class="ss-role-note">Signed in as {{ student.name }}. <a href="/dashboard">Open your dashboard</a>.</p>
+            {% endif %}
         </section>
     </main>
 

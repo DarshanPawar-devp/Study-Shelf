@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Analytics | StudyShelf</title>
+    {% include "_fonts.html" %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    {% include "_header.html" %}
+
+    <main>
+        <section class="hero">
+            <div>
+                <p class="eyebrow">ANALYTICS</p>
+                <h1>How students<br><em>use the site.</em></h1>
+                <p>Real numbers from the database. All dates are UTC.</p>
+            </div>
+        </section>
+
+        <section class="year-picker">
+            <div class="picker-bar">
+                <a href="/courses" class="back-btn">&larr; Back to courses</a>
+                <div class="ss-range" role="group" aria-label="Date range">
+                    <button type="button" class="small-btn ss-range-btn is-on" data-days="7">Last 7 days</button>
+                    <button type="button" class="small-btn ss-range-btn" data-days="30">Last 30 days</button>
+                </div>
+            </div>
+
+            <p class="ss-alert" id="anMsg" role="status" hidden></p>
+            <p class="ss-muted" id="anRange"></p>
+
+            <div class="ss-stats ss-stats-6" id="anCards" aria-live="polite">
+                <p class="ss-muted ss-pad">Loading...</p>
+            </div>
+
+            <p class="ss-note" id="anNote"></p>
+
+            <div class="ss-charts">
+                <div class="ss-card ss-chart"><h2>Students who logged in, per day</h2><div class="ss-canvas"><canvas id="chDaily" role="img" aria-label="Daily active students"></canvas></div></div>
+                <div class="ss-card ss-chart"><h2>New registrations</h2><div class="ss-canvas"><canvas id="chSignups" role="img" aria-label="New registrations per day"></canvas></div></div>
+                <div class="ss-card ss-chart"><h2>Successful login events</h2><div class="ss-canvas"><canvas id="chLogins" role="img" aria-label="Login events per day"></canvas></div></div>
+                <div class="ss-card ss-chart"><h2>Students by course</h2><div class="ss-canvas"><canvas id="chCourses" role="img" aria-label="Students per course"></canvas></div></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Chart.js, pinned version, from cdnjs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='analytics.js') }}"></script>
+</body>
+
+</html>

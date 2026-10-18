@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Notifications | StudyShelf</title>
+    {% include "_fonts.html" %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    {% include "_header.html" %}
+
+    <main>
+        <section class="hero">
+            <div>
+                <p class="eyebrow">NOTIFICATIONS</p>
+                <h1>What is<br><em>new for you.</em></h1>
+                <p>{{ unread }} unread. Showing your latest {{ items | length }}.</p>
+            </div>
+        </section>
+
+        <section class="year-picker">
+            <div class="picker-bar">
+                <a href="/dashboard" class="back-btn">&larr; Dashboard</a>
+                {% if unread %}<button type="button" class="small-btn" id="pageMarkAll">Mark all as read</button>{% endif %}
+            </div>
+
+            {% if items %}
+            <ul class="ss-list ss-list-card">
+                {% for n in items %}
+                <li>
+                    <a href="/course/{{ n.course }}?note={{ n.note_id }}" data-ss-notif="{{ n.id }}"
+                        class="{{ '' if n.read else 'ss-unread' }}">
+                        <strong>New notes: {{ n.title }}</strong>
+                        <span class="ss-muted">{{ n.course }}{% if n.year %} &middot; {{ n.year }}{% endif %} &middot; {{ n.subject }}
+                            &middot; <time datetime="{{ n.created_at }}" data-ss-date>{{ n.created_at[:10] }}</time>
+                            &middot; {{ 'Read' if n.read else 'Unread' }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="notes"><div class="empty">No notifications yet. When an admin uploads a note for your course, you will see it here.</div></div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+
+</html>
