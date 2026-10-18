@@ -22,6 +22,8 @@
   --background: #f3f6fc;
   --error: #b42318;
   --success: #0f7b5f;
+  --muted-text: #60708b;
+  --light-blue: #eaf1ff;
 }
 
 body {
@@ -390,4 +392,35 @@ input:focus {
     height: 44px;
     flex: none;
     margin-right: 12px;
+}
+
+/* Student login / register / reset reuse the same two-panel page */
+.login-box .ss-form {
+  margin-top: 4px;
+}
+
+.login-box .ss-alert {
+  margin: 0 0 14px;
+}
+
+.login-box .ss-links {
+  margin-top: 14px;
+  font-size: 0.88rem;
+}
+
+/* "Show" sits inside the password box, like on the admin login */
+.login-box .ss-pw {
+  position: relative;
+  display: block;
+}
+
+.login-box .ss-pw input {
+  padding-right: 68px;
+}
+
+.login-box .ss-pw .ss-link-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
 }
