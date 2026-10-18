@@ -83,10 +83,23 @@ def nice(value, with_time=False):
     return value.strftime("%d %b %Y, %H:%M UTC" if with_time else "%d %b %Y")
 
 
+def initials_of(name):
+    """"Darshan Pawar" -> "DP", "Rahul" -> "R", "" -> "S". Uses first + last word, so middle names are skipped."""
+    words = [w for w in str(name or "").split() if any(c.isalnum() for c in w)]
+    if not words:
+        return "S"
+    first = next(c for c in words[0] if c.isalnum())
+    if len(words) == 1:
+        return first.upper()
+    last = next(c for c in words[-1] if c.isalnum())
+    return (first + last).upper()
+
+
 def current_student():
     if not session.get("student_id") or not enabled():
         return None
-    return {"id": session["student_id"], "name": session.get("student_name", "Student")}
+    name = session.get("student_name", "Student")
+    return {"id": session["student_id"], "name": name, "initials": initials_of(name)}
 
 
 # Every template can use {{ student }} and {{ students_enabled }}
@@ -372,7 +385,30 @@ def dashboard():
     return render_template(
         "dashboard.html", profile=profile, course_info=info, note_count=note_count, unread=unread,
         recent=recent, courses=courses, years_order=h["year_codes"], year_names=h["year_names"],
-        years=h["years_for"](info["years"]) if info else [])
+        years=h["years_for"](info["years"]) if info else [],
+        year_label=h["year_names"].get(profile["year"], "") if profile["year"] else "")
+
+
+@bp.route("/api/profile")
+@student_required(api=True)
+def get_profile():
+    """Read-only details for the profile pop-up and the Edit details form.
+    The row is chosen by the logged-in session. The email comes from Supabase Auth and cannot be edited here."""
+    conn = h["get_db"]()
+    row = conn.execute(
+        "SELECT p.full_name, p.course, p.year, u.email FROM profiles p JOIN auth.users u ON u.id = p.id "
+        "WHERE p.id = ?::uuid", (session["student_id"],)).fetchone()
+    conn.close()
+    if not row:
+        return {"error": "Profile not found."}, 404
+    courses = h["get_courses"]()
+    return jsonify(
+        full_name=row["full_name"], email=row["email"], course=row["course"] or "", year=row["year"] or "",
+        initials=initials_of(row["full_name"]),
+        course_name=courses[row["course"]]["name"] if row["course"] in courses else "",
+        year_name=h["year_names"].get(row["year"], "") if row["year"] else "",
+        courses={code: {"name": c["name"], "years": c["years"]} for code, c in courses.items()},
+        years_order=h["year_codes"], year_names=h["year_names"])
 
 
 @bp.route("/api/profile", methods=["PUT"])

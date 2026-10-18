@@ -2,7 +2,7 @@
 <header>
 
     <!-- Project logo/name. Clicking it goes back to the first page. -->
-    <a href="/" class="brand"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="brand-logo" width="32" height="32">Study<span>Shelf</span></a>
+    <a href="{{ '/dashboard' if student else '/' }}" class="brand"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="brand-logo" width="32" height="32">Study<span>Shelf</span></a>
 
     <!-- Right side of the header -->
     <div class="nav-actions">
@@ -29,8 +29,30 @@
         </a>
 
         {% elif student %}
-        <!-- Logged-in student: dashboard link, notification bell, logout -->
-        <a href="/dashboard" class="ss-nav-link">Dashboard</a>
+        <!-- Logged-in student: profile avatar, notification bell, logout (the only student navigation) -->
+        <div class="ss-profile-wrap" id="ssProfileRoot">
+            <button type="button" class="ss-avatar" id="ssAvatar" aria-haspopup="true" aria-expanded="false"
+                aria-controls="ssProfilePanel" aria-label="Your profile: {{ student.name }}"
+                title="{{ student.name }}">{{ student.initials }}</button>
+
+            <div class="ss-panel ss-profile-panel" id="ssProfilePanel" hidden>
+                <div class="ss-profile-head">
+                    <span class="ss-avatar ss-avatar-lg" aria-hidden="true">{{ student.initials }}</span>
+                    <div class="ss-profile-id">
+                        <strong id="ssPName">{{ student.name }}</strong>
+                        <span class="ss-muted" id="ssPEmail">Loading...</span>
+                    </div>
+                </div>
+                <dl class="ss-profile-facts">
+                    <div><dt>Course</dt><dd id="ssPCourse">-</dd></div>
+                    <div><dt>Year</dt><dd id="ssPYear">-</dd></div>
+                </dl>
+                <p class="ss-muted ss-pad ss-profile-err" id="ssPErr" role="alert" hidden>Could not load your details.</p>
+                <div class="ss-profile-actions">
+                    <button type="button" class="ss-btn ss-btn-light" data-ss-edit>Edit details</button>
+                </div>
+            </div>
+        </div>
 
         <div class="ss-bell-wrap" id="ssRoot" data-uid="{{ student.id }}">
             <button type="button" class="round-btn ss-bell" id="ssBell" aria-label="Notifications"
@@ -52,7 +74,6 @@
                 </div>
                 <div class="ss-panel-foot">
                     <a href="/notifications">View all</a>
-                    <a href="/dashboard">Dashboard</a>
                 </div>
             </div>
         </div>
@@ -72,5 +93,38 @@
 {% if student %}
 <!-- Small pop-ups for new notes. They never block the page. -->
 <div class="ss-toasts" id="ssToasts" aria-live="polite"></div>
+
+<!-- "Edit details" pop-up (opened from the avatar). The fields are filled by profile.js. -->
+<dialog id="ssEditDialog" class="ss-dialog" aria-labelledby="ssEditTitle">
+    <form id="ssEditForm" novalidate>
+        <div class="dialog-title">
+            <div>
+                <h2 id="ssEditTitle">Edit details</h2>
+                <p>Your course decides which notes and notifications you get.</p>
+            </div>
+            <button type="button" class="x" id="ssEditClose" aria-label="Close">&times;</button>
+        </div>
+        <label class="ss-field">Full name
+            <input type="text" name="full_name" id="ssEditName" maxlength="80" autocomplete="name" required>
+        </label>
+        <label class="ss-field">Email
+            <input type="email" id="ssEditEmail" disabled>
+            <small>Your email is your login and cannot be changed here.</small>
+        </label>
+        <label class="ss-field">Course
+            <select name="course" id="ssEditCourse" required></select>
+        </label>
+        <label class="ss-field">Year <small>(optional)</small>
+            <select name="year" id="ssEditYear"></select>
+        </label>
+        <p class="ss-alert" id="ssEditMsg" role="status" hidden></p>
+        <div class="ss-dialog-actions">
+            <button type="button" class="ss-btn ss-btn-light" id="ssEditCancel">Cancel</button>
+            <button type="submit" class="ss-btn" id="ssEditSave">Save changes</button>
+        </div>
+    </form>
+</dialog>
+
 <script src="{{ url_for('static', filename='student.js') }}" defer></script>
+<script src="{{ url_for('static', filename='profile.js') }}" defer></script>
 {% endif %}

@@ -110,7 +110,6 @@ a.ss-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 20px #0f1f4518;
 .ss-uploader { font-size: 12px; color: var(--muted-text); margin: 2px 0 0; }
 
 @media (max-width: 700px) {
-    .ss-nav-link { display: none; }                                    /* dashboard is also inside the bell panel */
     .ss-panel { position: fixed; left: 8px; right: 8px; top: 64px; width: auto; }
     .ss-filters { grid-template-columns: 1fr 1fr; }
     .ss-filters input[type=search] { grid-column: 1 / -1; }
@@ -119,4 +118,88 @@ a.ss-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 20px #0f1f4518;
 @media (prefers-reduced-motion: reduce) {
     .ss-toast, .ss-highlight { animation: none; }
     .ss-btn, .ss-stat, .ss-item { transition: none; }
+}
+
+
+/* ==========================================================
+   Student dashboard, profile avatar + pop-up, note cards
+   ========================================================== */
+
+/* ---------- avatar (same style everywhere) ---------- */
+.ss-avatar { width: 38px; height: 38px; border-radius: 50%; display: inline-grid; place-items: center; flex-shrink: 0; border: 2px solid #ffffff44; background: linear-gradient(135deg, var(--mint), #3fc6ad); color: var(--navy); font: inherit; font-size: 14px; font-weight: 800; letter-spacing: .02em; cursor: pointer; transition: box-shadow .15s; }
+button.ss-avatar:hover { box-shadow: 0 0 0 3px #74e0ca55; }
+button.ss-avatar:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
+.ss-avatar-lg { width: 48px; height: 48px; font-size: 17px; border-color: transparent; cursor: default; }
+.ss-profile-wrap { position: relative; }
+.ss-profile-panel { width: min(320px, 92vw); }
+.ss-profile-head { display: flex; align-items: center; gap: 12px; padding: 14px; border-bottom: 1px solid var(--border); background: #f7f9fe; }
+.ss-profile-id { display: flex; flex-direction: column; min-width: 0; }
+.ss-profile-id strong { overflow-wrap: anywhere; }
+.ss-profile-id .ss-muted { overflow-wrap: anywhere; }
+.ss-profile-facts { margin: 0; padding: 6px 14px; }
+.ss-profile-facts div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.ss-profile-facts div:last-child { border-bottom: none; }
+.ss-profile-facts dt { color: var(--muted-text); }
+.ss-profile-facts dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.ss-profile-actions { padding: 6px 14px 14px; }
+.ss-profile-actions .ss-btn { width: 100%; text-align: center; }
+
+/* ---------- edit dialog ---------- */
+dialog.ss-dialog { width: min(440px, calc(100% - 28px)); }
+dialog.ss-dialog .dialog-title p { margin: 0; font-size: 13px; color: var(--muted-text); }
+dialog.ss-dialog .ss-field { display: flex; flex-direction: column; gap: 6px; }
+.ss-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.ss-btn:disabled { opacity: .6; cursor: default; transform: none; box-shadow: none; }
+.ss-field input:disabled { background: #f2f5fb; color: var(--muted-text); }
+
+/* ---------- dashboard layout: notes (wide) + notifications (side) ---------- */
+.ss-dash { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; align-items: start; }
+.ss-dash-main, .ss-dash-side { min-width: 0; }
+.ss-dash-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.ss-dash-head h2 { margin: 0; }
+.ss-dash-head .ss-link { font-size: 14px; font-weight: 600; }
+.ss-link:hover { text-decoration: underline; }
+.ss-side-card { position: sticky; top: 14px; padding: 18px; }
+.ss-side-card .ss-list { margin-bottom: 8px; }
+.ss-side-card .ss-link { font-size: 14px; font-weight: 600; display: inline-block; }
+.ss-notif { flex-direction: row !important; gap: 10px !important; align-items: flex-start; border-radius: 8px; }
+.ss-notif .ss-item-text strong { font-size: 14px; }
+.ss-list a.ss-notif { border-left: 3px solid transparent; padding-left: 4px; }
+.ss-list a.ss-notif.ss-unread { border-left-color: var(--blue); background: #f3f7ff; }
+.ss-new { color: var(--blue); font-weight: 700; }
+
+/* ---------- note filters + cards ---------- */
+.ss-note-filters { grid-template-columns: 2fr 1fr 1fr; margin-bottom: 8px; }
+.ss-count { margin: 0 0 10px; }
+.ss-notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.ss-notecard { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; transition: box-shadow .15s, transform .15s; }
+.ss-notecard:hover { box-shadow: 0 8px 22px #0f1f4518; transform: translateY(-2px); }
+.ss-notecard-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.ss-chip { background: var(--light-blue); color: var(--blue); font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.ss-notecard h3 { margin: 0; font-size: 16px; line-height: 1.3; overflow-wrap: anywhere; }
+.ss-notecard-sub { margin: 0; font-size: 13px; color: var(--muted-text); overflow-wrap: anywhere; }
+.ss-notecard-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 12px; }
+.ss-btn-sm { padding: 7px 16px; font-size: 13px; }
+.ss-notecard .ss-uploader { margin-top: 2px; }
+
+/* ---------- empty / loading / error states ---------- */
+.ss-empty { background: #fff; border: 1px dashed #c9d4ea; border-radius: 16px; padding: 28px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ss-empty p { margin: 0; color: var(--muted-text); font-size: 14px; max-width: 46ch; }
+.ss-empty-error { border-color: #f1b8b3; background: #fff8f7; }
+.ss-skeleton { height: 150px; border-radius: 16px; background: linear-gradient(90deg, #eef2fa 25%, #f7f9fe 50%, #eef2fa 75%); background-size: 200% 100%; animation: ss-shimmer 1.4s linear infinite; }
+@keyframes ss-shimmer { to { background-position: -200% 0; } }
+
+@media (max-width: 900px) {
+    .ss-dash { grid-template-columns: minmax(0, 1fr); }
+    .ss-side-card { position: static; }
+}
+@media (max-width: 700px) {
+    .ss-note-filters { grid-template-columns: 1fr 1fr; }
+    .ss-note-filters input[type=search] { grid-column: 1 / -1; }
+    .ss-notes-grid { grid-template-columns: minmax(0, 1fr); }
+    .ss-dialog-actions .ss-btn { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ss-skeleton { animation: none; }
+    .ss-notecard { transition: none; }
 }

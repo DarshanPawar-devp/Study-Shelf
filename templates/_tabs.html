@@ -9,9 +9,7 @@
     <a href="/analytics" class="tab {{ 'is-active' if active == 'analytics' }}" {% if active == 'analytics' %}aria-current="page"{% endif %}>Analytics</a>
     {% endif %}
     {% elif student %}
-    <a href="/dashboard" class="tab {{ 'is-active' if active == 'dashboard' }}" {% if active == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
-    <a href="/courses" class="tab {{ 'is-active' if active == 'courses' }}" {% if active == 'courses' %}aria-current="page"{% endif %}>All courses</a>
-    <a href="/notifications" class="tab {{ 'is-active' if active == 'notifications' }}" {% if active == 'notifications' %}aria-current="page"{% endif %}>Notifications</a>
+    {% if active != 'dashboard' %}<a href="/dashboard" class="tab">&larr; Back to dashboard</a>{% endif %}
     {% else %}
     <a href="/" class="tab">&larr; Back</a>
     {% endif %}
